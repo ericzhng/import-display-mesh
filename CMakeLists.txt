@@ -42,13 +42,12 @@ target_link_libraries(MeshViewer PRIVATE
     GLEW::GLEW 
     glfw 
     glm::glm 
-    assimp::assimp 
-    OpenGL
+    assimp::assimp
 )
 
-add_custom_command(TARGET MeshViewer POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${CMAKE_SOURCE_DIR}/shaders"
-    "$<TARGET_FILE_DIR:MeshViewer>/shaders"
-    COMMENT "Copying shaders to output directory..."
-)
+# add_custom_command(TARGET MeshViewer POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy_directory
+#     "${CMAKE_SOURCE_DIR}/shaders"
+#     "$<TARGET_FILE_DIR:MeshViewer>/shaders"
+#     COMMENT "Copying shaders to output directory..."
+# )
