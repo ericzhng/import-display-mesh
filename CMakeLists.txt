@@ -51,3 +51,17 @@ target_link_libraries(MeshViewer PRIVATE
 #     "$<TARGET_FILE_DIR:MeshViewer>/shaders"
 #     COMMENT "Copying shaders to output directory..."
 # )
+
+# --- Executable Target ---
+add_executable(extraTest extra/test_gl_windows.cpp)
+
+target_include_directories(extraTest PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/extra"
+    ${GLEW_INCLUDE_DIRS}
+)
+
+target_link_libraries(extraTest PRIVATE
+    GLEW::GLEW 
+    glfw 
+    glm::glm 
+)
