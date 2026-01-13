@@ -30,7 +30,12 @@ file(GLOB_RECURSE HEADERS "src/*.h")
 # FetchContent_MakeAvailable(glm)
 
 # --- Executable Target ---
-add_executable(MeshViewer ${SOURCES} ${HEADERS})
+add_executable(MeshViewer 
+    src/main.cpp 
+    src/Camera.cpp 
+    src/Window.cpp 
+    src/Viewer.cpp
+)
 
 target_include_directories(MeshViewer PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"

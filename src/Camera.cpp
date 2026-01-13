@@ -80,15 +80,10 @@ void Camera::ProcessMouseScroll(float yoffset)
 
 void Camera::SetTarget(glm::vec3 target, float radius)
 {
+    glm::vec3 direction = glm::normalize(Position - Target);
     Target = target;
     Radius = radius;
-    // Keep orientation, just move
-    glm::vec3 direction = glm::normalize(Position - Position); // This is wrong if Position==Position
-    // Better: Re-position camera at new radius along same vector
-    direction = glm::normalize(Position - Target); // Old target? No, we lost it.
-    // Assuming we jump to new target
-    // Let's just reset position relative to new target
-    // ... logic can be simple:
+    Position = Target + direction * Radius;
     updateCameraVectors();
 }
 
