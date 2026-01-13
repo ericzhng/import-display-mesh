@@ -9,19 +9,30 @@
 #include <string>
 #include <iostream>
 #include <glm/glm.hpp>
+#include <limits>
 
 class Model
 {
 public:
-    Model(const char *path) { loadModel(path); }
+    Model(const char *path)
+    {
+        loadModel(path);
+    }
     void Draw(Shader &shader)
     {
         for (unsigned int i = 0; i < meshes.size(); i++)
             meshes[i].Draw(shader);
     }
+    glm::vec3 GetCenter()
+    {
+        return (BoundingBoxMin + BoundingBoxMax) / 2.0f;
+    }
 
 private:
     std::vector<Mesh> meshes;
+    glm::vec3 BoundingBoxMin = glm::vec3(std::numeric_limits<float>::max());
+    glm::vec3 BoundingBoxMax = glm::vec3(std::numeric_limits<float>::lowest());
+
     void loadModel(std::string path)
     {
         Assimp::Importer importer;
@@ -56,7 +67,20 @@ private:
         for (unsigned int i = 0; i < mesh->mNumVertices; i++)
         {
             Vertex vertex;
-            vertex.Position = glm::vec3(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+            glm::vec3 vector;
+            vector.x = mesh->mVertices[i].x;
+            vector.y = mesh->mVertices[i].y;
+            vector.z = mesh->mVertices[i].z;
+            vertex.Position = vector;
+
+            BoundingBoxMin.x = std::min(BoundingBoxMin.x, vector.x);
+            BoundingBoxMin.y = std::min(BoundingBoxMin.y, vector.y);
+            BoundingBoxMin.z = std::min(BoundingBoxMin.z, vector.z);
+
+            BoundingBoxMax.x = std::max(BoundingBoxMax.x, vector.x);
+            BoundingBoxMax.y = std::max(BoundingBoxMax.y, vector.y);
+            BoundingBoxMax.z = std::max(BoundingBoxMax.z, vector.z);
+
             vertex.Normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
             vertices.push_back(vertex);
         }

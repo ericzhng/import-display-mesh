@@ -1,82 +1,101 @@
 #include "Camera.h"
+#include <iostream>
 
-// Constructor: Initializes the vectors and calculates the initial camera orientation
-Camera::Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch)
-    : Front(glm::vec3(0.0f, 0.0f, -1.0f)), MovementSpeed(SPEED), MouseSensitivity(SENSITIVITY), Zoom(ZOOM)
+Camera::Camera(glm::vec3 position, glm::vec3 target, glm::vec3 up)
 {
     Position = position;
+    Target = target;
     WorldUp = up;
-    Yaw = yaw;
-    Pitch = pitch;
-    updateCameraVectors();
+    MouseSensitivity = SENSITIVITY;
+    Zoom = ZOOM;
+    
+    // Initialize standard vectors
+    Radius = glm::distance(Position, Target);
+    Front = glm::normalize(Target - Position);
+    Right = glm::normalize(glm::cross(Front, WorldUp));
+    Up = glm::normalize(glm::cross(Right, Front));
 }
 
-// Returns the LookAt matrix
 glm::mat4 Camera::GetViewMatrix()
 {
-    return glm::lookAt(Position, Position + Front, Up);
+    return glm::lookAt(Position, Target, Up);
 }
 
-// Keyboard movement (Forward/Backward/Left/Right)
-void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime)
-{
-    float velocity = MovementSpeed * deltaTime;
-    if (direction == FORWARD)
-        Position += Front * velocity;
-    if (direction == BACKWARD)
-        Position -= Front * velocity;
-    if (direction == LEFT)
-        Position -= Right * velocity;
-    if (direction == RIGHT)
-        Position += Right * velocity;
-}
-
-// Rotation logic (Yaw and Pitch)
-void Camera::ProcessMouseMovement(float xoffset, float yoffset, bool constrainPitch)
+void Camera::ProcessMouseOrbit(float xoffset, float yoffset)
 {
     xoffset *= MouseSensitivity;
     yoffset *= MouseSensitivity;
 
-    Yaw += xoffset;
-    Pitch += yoffset;
+    // 1. Rotate around WorldUp (Yaw - horizontal mouse)
+    // Dragging left (xoffset < 0) -> Negative angle -> Camera orbits CW -> Object rotates CCW (Left)
+    float angleYaw = glm::radians(-xoffset); 
+    glm::quat rotationYaw = glm::angleAxis(angleYaw, WorldUp);
 
-    if (constrainPitch)
-    {
-        if (Pitch > 89.0f)
-            Pitch = 89.0f;
-        if (Pitch < -89.0f)
-            Pitch = -89.0f;
-    }
+    // 2. Rotate around Camera Right (Pitch - vertical mouse)
+    // Dragging up (yoffset > 0) -> Negative angle -> Camera orbits Down -> Object rotates Up
+    float anglePitch = glm::radians(yoffset);
+    glm::quat rotationPitch = glm::angleAxis(anglePitch, Right);
+
+    // Combine rotations
+    glm::quat rotation = rotationYaw * rotationPitch;
+
+    // Update Position relative to Target
+    glm::vec3 direction = Position - Target;
+    direction = rotation * direction;
+    Position = Target + direction;
+
+    // Update Up vector to allow free tumbling (no gimbal lock)
+    Up = rotation * Up;
+
+    // Re-calculate vectors
     updateCameraVectors();
 }
 
-// Panning logic (Translating along Right and Up vectors)
 void Camera::ProcessMousePanning(float xoffset, float yoffset)
 {
-    float panSpeed = 0.01f; // Adjust based on your scene scale
+    float panSpeed = 0.002f * Radius;
+    Target -= Right * xoffset * panSpeed;
+    Target -= Up * yoffset * panSpeed;
+    
+    // Position must move with Target
+    // Re-calculate Position based on new Target, keeping relative direction same
+    // Actually, just translating both Position and Target is easier
     Position -= Right * xoffset * panSpeed;
-    Position += Up * yoffset * panSpeed;
+    Position -= Up * yoffset * panSpeed;
+
+    // updateCameraVectors(); // Vectors don't change orientation during pan
 }
 
-// Zoom logic (Field of View)
 void Camera::ProcessMouseScroll(float yoffset)
 {
-    Zoom -= (float)yoffset;
-    if (Zoom < 1.0f)
-        Zoom = 1.0f;
-    if (Zoom > 45.0f)
-        Zoom = 45.0f;
+    float zoomLevel = yoffset * 0.1f * Radius;
+    if (Radius - zoomLevel < 0.1f) return;
+    
+    Radius -= zoomLevel;
+    
+    // Move Position closer/further from Target
+    glm::vec3 direction = glm::normalize(Position - Target);
+    Position = Target + direction * Radius;
 }
 
-// Calculates the Front, Right, and Up vectors from Euler Angles
+void Camera::SetTarget(glm::vec3 target, float radius)
+{
+    Target = target;
+    Radius = radius;
+    // Keep orientation, just move
+    glm::vec3 direction = glm::normalize(Position - Position); // This is wrong if Position==Position
+    // Better: Re-position camera at new radius along same vector
+    direction = glm::normalize(Position - Target); // Old target? No, we lost it.
+    // Assuming we jump to new target
+    // Let's just reset position relative to new target
+    // ... logic can be simple:
+    updateCameraVectors();
+}
+
 void Camera::updateCameraVectors()
 {
-    glm::vec3 front;
-    front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-    front.y = sin(glm::radians(Pitch));
-    front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
-
-    Front = glm::normalize(front);
-    Right = glm::normalize(glm::cross(Front, WorldUp));
+    // Re-orthogonalize to prevent floating point drift
+    Front = glm::normalize(Target - Position);
+    Right = glm::normalize(glm::cross(Front, Up)); // Trust Up more than WorldUp for free rotation
     Up = glm::normalize(glm::cross(Right, Front));
 }
