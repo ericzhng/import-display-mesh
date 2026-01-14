@@ -78,19 +78,23 @@ void Viewer::render()
         // Draw Model Solid
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.0, 1.0);
-        mainShader->setVec3("objectColor", glm::vec3(0.8f, 0.8f, 0.8f));
+        mainShader->setVec4("objectColor", glm::vec4(0.95f, 0.95f, 0.95f, 1.0f)); // Made more white-ish
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         model->Draw();
         glDisable(GL_POLYGON_OFFSET_FILL);
 
-        // Draw Model Wireframe Overlay
-        if (m_show_edges)
-        {
-            mainShader->setVec3("objectColor", glm::vec3(0.0f, 0.0f, 0.0f));
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            model->Draw();
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        }
+            // Draw Model Wireframe Overlay
+            if (m_show_edges)
+            {
+                mainShader->setBool("u_lightingEnabled", false); // Temporarily disable lighting for wireframe
+                mainShader->setVec4("objectColor", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); // Red for wireframe
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                glDisable(GL_DEPTH_TEST); // Disable depth test to ensure wireframe is always visible
+                model->Draw();
+                glEnable(GL_DEPTH_TEST); // Re-enable depth test
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                mainShader->setBool("u_lightingEnabled", m_lightingEnabled); // Restore lighting state
+            }
 
         // 3. Draw Axes Widget
         if (axesWidget)

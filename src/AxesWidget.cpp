@@ -82,6 +82,7 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
     glDisable(GL_SCISSOR_TEST);
 
     shader.use();
+    shader.setBool("u_isAxesWidget", true); // Indicate that we are rendering the axes widget
 
     // 2. Fixed Matrices for the widget
     glm::mat4 widgetProjection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 10.0f);
@@ -147,4 +148,6 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
     glEnable(GL_DEPTH_TEST);
     glLineWidth(1.0f);
     glBindVertexArray(0);
+
+    shader.setBool("u_isAxesWidget", false); // Reset for subsequent drawing
 }

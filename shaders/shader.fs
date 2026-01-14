@@ -4,17 +4,23 @@ out vec4 FragColor;
 in vec3 Normal;
 in vec3 FragPos;
 
-uniform vec3 objectColor;
+uniform vec4 objectColor; // Changed to vec4
 uniform vec3 lightColor;
 uniform vec3 lightPos; // Point light
 uniform vec3 viewPos;
-uniform bool u_lightingEnabled; // New uniform
-uniform float u_ambientStrength; // New uniform
+uniform bool u_lightingEnabled;
+uniform float u_ambientStrength;
+uniform bool u_isAxesWidget; // New uniform
 
 void main()
 {
+    if (u_isAxesWidget) { // If rendering axes, just use objectColor
+        FragColor = objectColor; // Use actual objectColor for axes
+        return;
+    }
+
     if (!u_lightingEnabled) {
-        FragColor = vec4(objectColor, 1.0); // Render unlit if lighting is disabled
+        FragColor = objectColor; // Render unlit if lighting is disabled, use objectColor directly
         return;
     }
 
@@ -34,6 +40,6 @@ void main()
     float spec = pow(max(dot(norm, halfVector), 0.0), 32.0); // 32.0 is shininess
     vec3 specular = specularStrength * spec * lightColor;
 
-    vec3 result = (ambient + diffuse + specular) * objectColor;
-    FragColor = vec4(result, 1.0);
+    vec3 result = (ambient + diffuse + specular) * objectColor.rgb; // Use .rgb here
+    FragColor = vec4(result, objectColor.a); // Use objectColor's alpha
 }
