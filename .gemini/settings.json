@@ -1,5 +1,18 @@
 {
     "general": {
-        "previewFeatures": true
+        "previewFeatures": false,
+        "files.exclude": {
+            "**/.gitignore": true,
+            "**/*.o": true,
+            "**/*.exe": true
+        },
+        "search.exclude": {
+            "**/.git": true,
+            "build/": true,
+            "examples/": true,
+            "extra/": true,
+            "vendor/": true
+        },
+        "editor.formatOnSave": true
     }
 }

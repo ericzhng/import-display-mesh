@@ -1,8 +1,9 @@
 #include "Window.h"
 #include "Viewer.h"
 #include <iostream>
+#include <filesystem>
 
-int main()
+int main(int argc, char *argv[])
 {
     // 1. Create Window (Handles GLFW init and Context creation)
     Window window(800, 600, "Structural Mesh Viewer");
@@ -20,30 +21,23 @@ int main()
     // 4. Initialize Viewer (Context is now valid)
     viewer.init();
 
-    // 5. Load default model
-    // Try to locate the file, assuming running from root or build/
+    // 5. Load model
+    // Default model path
     std::string modelPath = "E:/2026-01/OpenGL/import-display-mesh/examples/airboat.obj";
-    FILE *f = fopen(modelPath.c_str(), "r");
-    if (!f)
+
+    // Check for command line argument
+    if (argc > 1)
     {
-        // Try going up one level (e.g. running from build/)
-        modelPath = "../examples/airboat.obj";
-        f = fopen(modelPath.c_str(), "r");
-        if (!f)
-        {
-            std::cerr << "Warning: Could not find default model at examples/airboat.obj" << std::endl;
-        }
-        else
-        {
-            fclose(f);
-            viewer.loadModel(modelPath);
-        }
+        modelPath = argv[1];
     }
-    else
+
+    if (!std::filesystem::exists(modelPath))
     {
-        fclose(f);
-        viewer.loadModel(modelPath);
+        std::cerr << "Warning: Could not find specified model " << modelPath << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <path_to_model>" << std::endl;
     }
+
+    viewer.loadModel(modelPath);
 
     // 6. Main Loop
     while (!window.shouldClose())

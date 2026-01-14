@@ -83,13 +83,13 @@ void Window::mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     if (viewer) {
         bool left = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
         bool middle = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS;
-        viewer->onMouseMove(xpos, ypos, left, middle);
+        viewer->onMouseMove(static_cast<float>(xpos), static_cast<float>(ypos), left, middle);
     }
 }
 
 void Window::scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     Viewer* viewer = static_cast<Viewer*>(glfwGetWindowUserPointer(window));
     if (viewer) {
-        viewer->onScroll(yoffset);
+        viewer->onScroll(static_cast<float>(yoffset));
     }
 }

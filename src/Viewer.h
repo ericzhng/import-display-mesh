@@ -22,8 +22,8 @@ public:
     // Input Handling
     void onResize(int width, int height);
     void onKey(int key, int action);
-    void onMouseMove(double xpos, double ypos, bool leftButton, bool middleButton);
-    void onScroll(double yoffset);
+    void onMouseMove(float xpos, float ypos, bool leftButton, bool middleButton);
+    void onScroll(float yoffset);
 
     void setPerspective(bool enable) { usePerspective = enable; }
     

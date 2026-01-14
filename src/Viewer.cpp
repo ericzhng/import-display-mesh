@@ -5,7 +5,7 @@
 Viewer::Viewer(int width, int height)
     : width(width), height(height),
       camera(glm::vec3(10.0f, -10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-      usePerspective(true), firstMouse(true), lastX(width / 2.0f), lastY(height / 2.0f)
+      usePerspective(false), firstMouse(true), lastX(width / 2.0f), lastY(height / 2.0f)
 {
 }
 
@@ -215,7 +215,7 @@ void Viewer::onKey(int key, int action)
         usePerspective = !usePerspective;
 }
 
-void Viewer::onMouseMove(double xpos, double ypos, bool leftButton, bool middleButton)
+void Viewer::onMouseMove(float xpos, float ypos, bool leftButton, bool middleButton)
 {
     if (firstMouse)
     {
@@ -238,9 +238,9 @@ void Viewer::onMouseMove(double xpos, double ypos, bool leftButton, bool middleB
     }
 }
 
-void Viewer::onScroll(double yoffset)
+void Viewer::onScroll(float yoffset)
 {
-    camera.ProcessMouseScroll((float)yoffset);
+    camera.ProcessMouseScroll(yoffset);
 }
 
 void Viewer::initBackground()
