@@ -8,7 +8,7 @@ Camera::Camera(glm::vec3 position, glm::vec3 target, glm::vec3 up)
     WorldUp = up;
     MouseSensitivity = SENSITIVITY;
     Zoom = ZOOM;
-    
+
     // Initialize standard vectors
     Radius = glm::distance(Position, Target);
     Front = glm::normalize(Target - Position);
@@ -22,58 +22,73 @@ glm::mat4 Camera::GetViewMatrix()
 }
 
 void Camera::ProcessMouseOrbit(float xoffset, float yoffset)
-{
+{ // 1. Sensitivity
     xoffset *= MouseSensitivity;
     yoffset *= MouseSensitivity;
 
-    // 1. Rotate around WorldUp (Yaw - horizontal mouse)
-    // Dragging left (xoffset < 0) -> Negative angle -> Camera orbits CW -> Object rotates CCW (Left)
-    float angleYaw = glm::radians(-xoffset); 
-    glm::quat rotationYaw = glm::angleAxis(angleYaw, WorldUp);
+    // 2. Generate Rotations based on LOCAL axes
+    // Note: We use 'Up' (Local), not 'WorldUp'
+    float angleYaw = glm::radians(-xoffset);  // Negative for natural "grab and drag" feel
+    float anglePitch = glm::radians(yoffset); // Positive for natural up/down
 
-    // 2. Rotate around Camera Right (Pitch - vertical mouse)
-    // Dragging up (yoffset > 0) -> Negative angle -> Camera orbits Down -> Object rotates Up
-    float anglePitch = glm::radians(yoffset);
-    glm::quat rotationPitch = glm::angleAxis(anglePitch, Right);
+    // Create quaternions
+    glm::quat rotationYaw = glm::angleAxis(angleYaw, Up);        // Rotate around local Up
+    glm::quat rotationPitch = glm::angleAxis(anglePitch, Right); // Rotate around local Right
 
     // Combine rotations
+    // Order matters slightly, but for small mouse deltas, Yaw * Pitch is standard
     glm::quat rotation = rotationYaw * rotationPitch;
 
-    // Update Position relative to Target
+    // 3. Apply Rotation to Position
     glm::vec3 direction = Position - Target;
     direction = rotation * direction;
     Position = Target + direction;
 
-    // Update Up vector to allow free tumbling (no gimbal lock)
+    // 4. IMPORTANT: Apply Rotation to Up Vector
+    // This allows the camera to "tumble" and go upside down freely
     Up = rotation * Up;
 
-    // Re-calculate vectors
-    updateCameraVectors();
+    // 5. Re-orthogonalize to prevent error accumulation
+    // We rely on 'Up' being correct now, so we calculate Right and Front from it
+    Front = glm::normalize(Target - Position);
+    Right = glm::normalize(glm::cross(Front, Up));
+    Up = glm::normalize(glm::cross(Right, Front)); // Enforce 90-degree angles
 }
 
-void Camera::ProcessMousePanning(float xoffset, float yoffset)
+void Camera::ProcessMousePanning(float xoffset, float yoffset, int screenHeight)
 {
-    float panSpeed = 0.002f * Radius;
-    Target -= Right * xoffset * panSpeed;
-    Target -= Up * yoffset * panSpeed;
-    
-    // Position must move with Target
-    // Re-calculate Position based on new Target, keeping relative direction same
-    // Actually, just translating both Position and Target is easier
-    Position -= Right * xoffset * panSpeed;
-    Position -= Up * yoffset * panSpeed;
+    // 1. Calculate the height of the view plane at the distance of the pivot (Radius)
+    //    Formula: Height = 2 * Distance * tan(FOV / 2)
+    float fovRadians = glm::radians(Zoom); // 'Zoom' acts as FOV in your code
+    float visibleHeightAtPivot = 2.0f * Radius * tan(fovRadians * 0.5f);
 
-    // updateCameraVectors(); // Vectors don't change orientation during pan
+    // 2. Calculate how much world distance corresponds to 1 pixel
+    float pixelToWorldRatio = visibleHeightAtPivot / (float)screenHeight;
+
+    // 3. Move logic (Note: vertical yoffset might need inversion depending on mouse callback)
+    //    If dragging mouse DOWN (yoffset < 0), we want camera to move UP so object moves DOWN.
+    //    Your Viewer.cpp calculates yoffset = lastY - ypos.
+    //    If ypos goes up (mouse down), yoffset is negative.
+    //    We need Target -= Up * negative. = Target + Up. Camera moves Up. Correct.
+
+    Target -= Right * xoffset * pixelToWorldRatio;
+    Target -= Up * yoffset * pixelToWorldRatio;
+    Position -= Right * xoffset * pixelToWorldRatio;
+    Position -= Up * yoffset * pixelToWorldRatio;
 }
 
 void Camera::ProcessMouseScroll(float yoffset)
 {
-    float zoomLevel = yoffset * 0.1f * Radius;
-    if (Radius - zoomLevel < 0.1f) return;
-    
-    Radius -= zoomLevel;
-    
-    // Move Position closer/further from Target
+    // Exponential Zoom
+    // 0.9f means "get 10% closer" per click. 1.1f means "get 10% further".
+    float zoomFactor = 0.9f;
+
+    if (yoffset > 0) // Zoom In
+        Radius *= zoomFactor;
+    else // Zoom Out
+        Radius /= zoomFactor;
+
+    // Update Position
     glm::vec3 direction = glm::normalize(Position - Target);
     Position = Target + direction * Radius;
 }

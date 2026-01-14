@@ -40,7 +40,7 @@ public:
     void ProcessMouseOrbit(float xoffset, float yoffset);
 
     // Processes Panning (Middle Mouse)
-    void ProcessMousePanning(float xoffset, float yoffset);
+    void ProcessMousePanning(float xoffset, float yoffset, int screenHeight);
 
     void SetTarget(glm::vec3 target, float radius);
 
