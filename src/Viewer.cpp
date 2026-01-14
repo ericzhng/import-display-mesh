@@ -75,10 +75,13 @@ void Viewer::render()
         glDisable(GL_POLYGON_OFFSET_FILL);
 
         // Draw Model Wireframe Overlay
-        mainShader->setVec4("objectColor", glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        model->Draw();
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        if (m_show_edges)
+        {
+            mainShader->setVec4("objectColor", glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            model->Draw();
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
 
         // 3. Draw Axes Widget
         if (axesWidget)
@@ -98,6 +101,9 @@ void Viewer::onKey(int key, int action)
 {
     if (key == GLFW_KEY_P && action == GLFW_PRESS)
         usePerspective = !usePerspective;
+
+    if (key == GLFW_KEY_V && action == GLFW_PRESS)
+        m_show_edges = !m_show_edges;
 }
 
 void Viewer::onMouseMove(float xpos, float ypos, bool leftButton, bool middleButton)

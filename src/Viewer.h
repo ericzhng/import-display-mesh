@@ -44,4 +44,5 @@ private:
     bool usePerspective;
     float lastX, lastY;
     bool firstMouse;
+    bool m_show_edges = false; // Added for wireframe toggling
 };

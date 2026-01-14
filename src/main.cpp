@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
         viewer.init();
 
         std::cout << "Loading model..." << std::endl;
-        std::string modelPath = "examples/airboat.obj";
+        std::string modelPath = "examples/skyscraper.obj";
 
         if (argc > 1)
         {
