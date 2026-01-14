@@ -26,6 +26,8 @@ public:
     void setVec4(const std::string &name, float x, float y, float z, float w) const;
     void setVec3(const std::string &name, const glm::vec3 &value) const;
     void setVec3(const std::string &name, float x, float y, float z) const;
+    void setBool(const std::string &name, bool value) const; // New: Set boolean uniform
+    void setFloat(const std::string &name, float value) const; // New: Set float uniform
 
 private:
     unsigned int ID = 0;

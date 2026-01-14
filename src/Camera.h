@@ -22,6 +22,7 @@ public:
     glm::mat4 GetViewMatrix() const;
 
     // Getter methods
+    glm::vec3 GetPosition() const { return Position; }
     float GetZoom() const { return Zoom; }
     float GetRadius() const { return Radius; }
 

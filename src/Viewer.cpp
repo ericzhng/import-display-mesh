@@ -7,7 +7,8 @@
 Viewer::Viewer(int width, int height)
     : width(width), height(height),
       camera(glm::vec3(10.0f, -10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-      usePerspective(false), firstMouse(true), lastX(width / 2.0f), lastY(height / 2.0f)
+      usePerspective(false), firstMouse(true), lastX(width / 2.0f), lastY(height / 2.0f),
+      m_lightingEnabled(true), m_ambientStrength(0.1f) // Initialize new members
 {
     background = std::make_unique<Background>();
     axesWidget = std::make_unique<AxesWidget>();
@@ -52,6 +53,14 @@ void Viewer::render()
     if (model && mainShader)
     {
         mainShader->use();
+
+        // Set lighting uniforms (Headlight)
+        mainShader->setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f)); // White light
+        mainShader->setVec3("lightPos", camera.GetPosition());          // Light at camera's position
+        mainShader->setVec3("viewPos", camera.GetPosition());
+        mainShader->setBool("u_lightingEnabled", m_lightingEnabled);  // Pass lighting toggle state
+        mainShader->setFloat("u_ambientStrength", m_ambientStrength); // Pass ambient strength
+
         glm::mat4 projection;
         if (usePerspective)
             projection = glm::perspective(glm::radians(camera.GetZoom()), aspectRatio, 0.1f, 1000.0f);
@@ -69,7 +78,7 @@ void Viewer::render()
         // Draw Model Solid
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.0, 1.0);
-        mainShader->setVec4("objectColor", glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
+        mainShader->setVec3("objectColor", glm::vec3(0.8f, 0.8f, 0.8f));
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         model->Draw();
         glDisable(GL_POLYGON_OFFSET_FILL);
@@ -77,7 +86,7 @@ void Viewer::render()
         // Draw Model Wireframe Overlay
         if (m_show_edges)
         {
-            mainShader->setVec4("objectColor", glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+            mainShader->setVec3("objectColor", glm::vec3(0.0f, 0.0f, 0.0f));
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             model->Draw();
             glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -104,6 +113,9 @@ void Viewer::onKey(int key, int action)
 
     if (key == GLFW_KEY_V && action == GLFW_PRESS)
         m_show_edges = !m_show_edges;
+
+    if (key == GLFW_KEY_L && action == GLFW_PRESS)
+        m_lightingEnabled = !m_lightingEnabled; // Toggle lighting with 'L' key
 }
 
 void Viewer::onMouseMove(float xpos, float ypos, bool leftButton, bool middleButton)
