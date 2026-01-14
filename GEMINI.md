@@ -1,33 +1,36 @@
-# MeshViewer
+# Project Objective
 
-## Project Overview
-**MeshViewer** is a C++ OpenGL application designed to import and display 3D structural meshes. It utilizes **Assimp** for model loading, **GLFW** for window management, **GLEW** for OpenGL extension loading, and **GLM** for mathematics.
+The goal of this project is to develop a lightweight, high-performance C++ 3D Model Viewer using OpenGL. This will be driven by data from simulation. The target is that this Model Viewer can visualize the simulation results passed from either CPU or CUDA memory.
 
-The application currently loads a sample 3D model (hardcoded path) and renders it with a basic shader, allowing for camera navigation via mouse input.
+## Key Features
+- **Model Loading:** Utilizes the Assimp library to import various 3D model formats (e.g., .obj) with support for vertices, normals, and indices.
+- **Rendering Engine:** Implements a modern OpenGL rendering pipeline (VBOs, VAOs) with custom shaders for model and background rendering.
+- **Interactive Viewing:** Features a flexible camera system allowing users to inspect models via mouse interactions (rotate, pan, zoom).
+- **Visualization Aids:** Includes coordinate axes and a gradient background to enhance spatial understanding of structural meshes.
+- **Cross-Platform:** Built on top of GLFW and GLEW for cross-platform windowing and OpenGL context management.
 
-## Key Technologies
-*   **Language:** C++17
-*   **Build System:** CMake
-*   **Graphics API:** OpenGL
-*   **Dependencies:**
-    *   **GLFW3:** Windowing and input.
-    *   **GLEW:** OpenGL function loading.
-    *   **Assimp:** 3D model import (supports formats like OBJ, FBX, etc.).
-    *   **GLM:** Mathematics (vectors, matrices).
+## Technical Stack
+- **Language:** C++
+- **Graphics API:** OpenGL
+- **Libraries:**
+    - `GLFW`: Window creation and input handling.
+    - `GLEW`: OpenGL extension loading.
+    - `GLM`: Mathematics (vectors, matrices).
+    - `Assimp`: 3D model import.
 
 ## Directory Structure
-*   `src/`: Source code files (`main.cpp`, `Model.h`, `Mesh.h`, `Camera.h`, `Shader.h`).
-*   `shaders/`: GLSL shader source files (`shader.vs`, `shader.fs`).
+*   `src/`: Source code files (`main.cpp`, `Model.h`, `Mesh.h`, `Camera.h`, `Camera.cpp`, `Window.h`, `Window.cpp`, `Shader.h`, `View.h`, `View.cpp`).
+*   `shaders/`: GLSL shader source files (`shader.vs`, `shader.fs`, `background.vs`, `background.fs`).
 *   `vendor/`: Third-party libraries (contains `glm`).
 *   `examples/`: Sample 3D models (e.g., `cube.obj`).
-*   `extra/`: Additional test files (`test_gl_windows.cpp`).
 *   `CMakeLists.txt`: CMake build configuration.
 
 ## Building and Running
 
 ### Prerequisites
 *   CMake (3.10 or higher)
-*   C++ Compiler (supporting C++17)
+*   C++ Compiler (supporting C++17, In Windows, using Visual Studio Build Tools)
+*   VCPKG (latest version, if in Windows)
 *   Development libraries for GLFW, GLEW, and Assimp must be installed and findable by CMake.
 
 ### Build Instructions
@@ -38,7 +41,7 @@ The application currently loads a sample 3D model (hardcoded path) and renders i
     ```
 2.  Generate build files:
     ```bash
-    cmake ..
+    cmake -CMAKE_TOOLCHAIN_FILE=$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake ..
     ```
 3.  Compile the project:
     ```bash
@@ -48,13 +51,11 @@ The application currently loads a sample 3D model (hardcoded path) and renders i
 ### Running the Application
 The executable `MeshViewer` will be located in the `build` directory (or `build/Debug` on Windows).
 
-**Important:** The application expects to find the `shaders/` directory relative to the working directory. It is recommended to run the executable from the project root or copy the `shaders` folder to the executable's directory.
-
-**Note:** The path to the 3D model is currently **hardcoded** in `src/main.cpp` line 69. You may need to modify this path to point to a valid file on your system (e.g., `examples/cube.obj` with an absolute path) before recompiling.
+**Important:** The application expects to find the `shaders/` directory relative to the working directory. CMake will automatically copy the `shaders` folder to the executable's directory.
 
 ## Controls
-*   **Middle Mouse Button + Shift:** Orbit Camera
-*   **Middle Mouse Button:** Pan Camera
+*   **Left Mouse Drag:** Orbit Camera
+*   **Middle Mouse Button Hold:** Pan Camera
 *   **Middle Mouse Scroll:** Zoom In/Out
 
 ## Codebase Conventions
