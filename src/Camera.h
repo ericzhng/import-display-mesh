@@ -8,30 +8,22 @@
 #include <glm/gtx/quaternion.hpp>
 #include <vector>
 
-const float SENSITIVITY = 0.2f;
-const float ZOOM = 45.0f;
-
 class Camera
 {
 public:
-    // Camera Attributes
-    glm::vec3 Position;
-    glm::vec3 Front;
-    glm::vec3 Up;
-    glm::vec3 Right;
-    glm::vec3 WorldUp;
-    glm::vec3 Target;
-    float Radius;
-
-    // Camera options
-    float MouseSensitivity;
-    float Zoom;
+    // static constants
+    static constexpr float SENSITIVITY = 0.2f;
+    static constexpr float ZOOM = 45.0f;
 
     // Constructor with vectors
     Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 target = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 0.0f, 1.0f));
 
     // Returns the view matrix
-    glm::mat4 GetViewMatrix();
+    glm::mat4 GetViewMatrix() const;
+
+    // Getter methods
+    float GetZoom() const { return Zoom; }
+    float GetRadius() const { return Radius; }
 
     // Processes input received from a mouse scroll-wheel event
     void ProcessMouseScroll(float yoffset);
@@ -45,6 +37,19 @@ public:
     void SetTarget(glm::vec3 target, float radius);
 
 private:
+    // Camera Attributes
+    glm::vec3 Position;
+    glm::vec3 Front;
+    glm::vec3 Up;
+    glm::vec3 Right;
+    glm::vec3 WorldUp;
+    glm::vec3 Target;
+    float Radius;
+
+    // Camera options
+    float MouseSensitivity;
+    float Zoom;
+
     void updateCameraVectors();
 };
 

@@ -31,10 +31,15 @@ file(GLOB_RECURSE HEADERS "src/*.h")
 
 # --- Executable Target ---
 add_executable(MeshViewer 
-    src/main.cpp 
+    src/main.cpp
+    src/AxesWidget.cpp
+    src/Background.cpp
     src/Camera.cpp 
-    src/Window.cpp 
+    src/Mesh.cpp
+    src/Model.cpp
+    src/Shader.cpp
     src/Viewer.cpp
+    src/Window.cpp
 )
 
 target_include_directories(MeshViewer PRIVATE
@@ -55,6 +60,13 @@ add_custom_command(TARGET MeshViewer POST_BUILD
     "${CMAKE_SOURCE_DIR}/shaders"
     "$<TARGET_FILE_DIR:MeshViewer>/shaders"
     COMMENT "Copying shaders to output directory..."
+)
+
+add_custom_command(TARGET MeshViewer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${CMAKE_SOURCE_DIR}/examples"
+    "$<TARGET_FILE_DIR:MeshViewer>/examples"
+    COMMENT "Copying example models to output directory..."
 )
 
 # --- Executable Target ---

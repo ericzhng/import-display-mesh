@@ -2,49 +2,71 @@
 #include "Viewer.h"
 #include <iostream>
 #include <filesystem>
+#include <stdexcept>
+
+void pause_and_exit(int exit_code)
+{
+    std::cout << "Press ENTER to exit..." << std::endl;
+    std::cin.get();
+    exit(exit_code);
+}
 
 int main(int argc, char *argv[])
 {
-    // 1. Create Window (Handles GLFW init and Context creation)
-    Window window(800, 600, "Structural Mesh Viewer");
-    if (!window.init())
+    try
     {
-        return -1;
+        std::cout << "Initializing Window..." << std::endl;
+        Window window(800, 600, "Structural Mesh Viewer");
+        if (!window.init())
+        {
+            std::cerr << "FATAL: Window initialization failed." << std::endl;
+            pause_and_exit(-1);
+        }
+
+        std::cout << "Initializing Viewer..." << std::endl;
+        Viewer viewer(800, 600);
+
+        std::cout << "Linking event handler..." << std::endl;
+        window.setEventHandler(&viewer);
+
+        std::cout << "Initializing viewer subsystems..." << std::endl;
+        viewer.init();
+
+        std::cout << "Loading model..." << std::endl;
+        std::string modelPath = "examples/airboat.obj";
+
+        if (argc > 1)
+        {
+            modelPath = argv[1];
+        }
+
+        if (!std::filesystem::exists(modelPath))
+        {
+            std::cerr << "Warning: Could not find specified model path: " << std::filesystem::absolute(modelPath) << std::endl;
+            std::cerr << "Usage: " << argv[0] << " <path_to_model>" << std::endl;
+        }
+
+        viewer.loadModel(modelPath);
+
+        std::cout << "Entering main loop..." << std::endl;
+        while (!window.shouldClose())
+        {
+            viewer.render();
+            window.swapBuffers();
+            window.pollEvents();
+        }
+
+        std::cout << "Exiting." << std::endl;
     }
-
-    // 2. Create Viewer
-    Viewer viewer(800, 600);
-
-    // 3. Link Viewer to Window for callbacks
-    window.setUserPointer(&viewer);
-
-    // 4. Initialize Viewer (Context is now valid)
-    viewer.init();
-
-    // 5. Load model
-    // Default model path
-    std::string modelPath = "E:/2026-01/OpenGL/import-display-mesh/examples/airboat.obj";
-
-    // Check for command line argument
-    if (argc > 1)
+    catch (const std::exception &e)
     {
-        modelPath = argv[1];
+        std::cerr << "FATAL: An unhandled exception occurred: " << e.what() << std::endl;
+        pause_and_exit(-2);
     }
-
-    if (!std::filesystem::exists(modelPath))
+    catch (...)
     {
-        std::cerr << "Warning: Could not find specified model " << modelPath << std::endl;
-        std::cerr << "Usage: " << argv[0] << " <path_to_model>" << std::endl;
-    }
-
-    viewer.loadModel(modelPath);
-
-    // 6. Main Loop
-    while (!window.shouldClose())
-    {
-        viewer.render();
-        window.swapBuffers();
-        window.pollEvents();
+        std::cerr << "FATAL: An unknown unhandled exception occurred." << std::endl;
+        pause_and_exit(-3);
     }
 
     return 0;

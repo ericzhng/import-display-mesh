@@ -4,10 +4,12 @@
 #include <GLFW/glfw3.h>
 #include <string>
 #include <iostream>
+#include "IEventHandler.h"
 
-class Window {
+class Window
+{
 public:
-    Window(int width, int height, const std::string& title);
+    Window(int width, int height, const std::string &title);
     ~Window();
 
     bool init();
@@ -18,20 +20,21 @@ public:
 
     int getWidth() const { return width; }
     int getHeight() const { return height; }
-    GLFWwindow* getHandle() const { return window; }
+    GLFWwindow *getHandle() const { return window; }
 
-    // User pointer management for callbacks
-    void setUserPointer(void* ptr);
+    // Sets the handler for input and window events.
+    void setEventHandler(IEventHandler *handler);
 
 private:
-    GLFWwindow* window;
+    GLFWwindow *window;
+    IEventHandler *eventHandler;
     int width;
     int height;
     std::string title;
 
     // Static callbacks
-    static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-    static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
-    static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-    static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+    static void framebuffer_size_callback(GLFWwindow *window, int width, int height);
+    static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
+    static void mouse_callback(GLFWwindow *window, double xpos, double ypos);
+    static void scroll_callback(GLFWwindow *window, double xoffset, double yoffset);
 };

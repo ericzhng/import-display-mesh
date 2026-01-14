@@ -6,8 +6,8 @@ Camera::Camera(glm::vec3 position, glm::vec3 target, glm::vec3 up)
     Position = position;
     Target = target;
     WorldUp = up;
-    MouseSensitivity = SENSITIVITY;
-    Zoom = ZOOM;
+    MouseSensitivity = Camera::SENSITIVITY;
+    Zoom = Camera::ZOOM;
 
     // Initialize standard vectors
     Radius = glm::distance(Position, Target);
@@ -16,7 +16,7 @@ Camera::Camera(glm::vec3 position, glm::vec3 target, glm::vec3 up)
     Up = glm::normalize(glm::cross(Right, Front));
 }
 
-glm::mat4 Camera::GetViewMatrix()
+glm::mat4 Camera::GetViewMatrix() const
 {
     return glm::lookAt(Position, Target, Up);
 }
