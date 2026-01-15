@@ -83,23 +83,29 @@ void Viewer::render()
         model->Draw();
         glDisable(GL_POLYGON_OFFSET_FILL);
 
-            // Draw Model Wireframe Overlay
-            if (m_show_edges)
-            {
-                mainShader->setBool("u_lightingEnabled", false); // Temporarily disable lighting for wireframe
-                mainShader->setVec4("objectColor", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); // Red for wireframe
-                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                glDisable(GL_DEPTH_TEST); // Disable depth test to ensure wireframe is always visible
-                model->Draw();
-                glEnable(GL_DEPTH_TEST); // Re-enable depth test
-                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                mainShader->setBool("u_lightingEnabled", m_lightingEnabled); // Restore lighting state
-            }
+        // Draw Model Wireframe Overlay
+        if (m_show_edges)
+        {
+            mainShader->setBool("u_lightingEnabled", false);                       // Temporarily disable lighting for wireframe
+            mainShader->setVec4("objectColor", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); // Red for wireframe
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glDisable(GL_DEPTH_TEST); // Disable depth test to ensure wireframe is always visible
+            model->Draw();
+            glEnable(GL_DEPTH_TEST); // Re-enable depth test
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            mainShader->setBool("u_lightingEnabled", m_lightingEnabled); // Restore lighting state
+        }
 
         // 3. Draw Axes Widget
         if (axesWidget)
         {
             axesWidget->Draw(view, projection, *mainShader);
+        }
+
+        // 4. Draw Context Menu if active
+        if (m_showContextMenu)
+        {
+            drawContextMenu();
         }
     }
 }
@@ -112,6 +118,7 @@ void Viewer::onResize(int w, int h)
 
 void Viewer::onKey(int key, int action)
 {
+    // Key bindings are now handled by context menu
     if (key == GLFW_KEY_P && action == GLFW_PRESS)
         usePerspective = !usePerspective;
 
@@ -124,6 +131,9 @@ void Viewer::onKey(int key, int action)
 
 void Viewer::onMouseMove(float xpos, float ypos, bool leftButton, bool middleButton)
 {
+    if (m_showContextMenu)
+        return; // Do not orbit if context menu is open
+
     if (firstMouse)
     {
         lastX = xpos;
@@ -147,5 +157,228 @@ void Viewer::onMouseMove(float xpos, float ypos, bool leftButton, bool middleBut
 
 void Viewer::onScroll(float yoffset)
 {
+    if (m_showContextMenu)
+        return; // Do not zoom if context menu is open
     camera.ProcessMouseScroll(yoffset);
+}
+
+// Function to draw the context menu
+void Viewer::drawTextStub(float x, float y, const std::string &text, float fontSize, glm::vec4 color)
+{
+    // Placeholder for text rendering.
+    // In a real application, you would use a font rendering library (e.g., FreeType)
+    // or a textured font atlas.
+    // For now, we'll draw a small colored rectangle to indicate text presence.
+    glPushMatrix();
+    glTranslatef(x, y, 0.0f);
+    glScalef(fontSize * 0.5f, fontSize, 1.0f); // Scale placeholder based on font size
+
+    glColor4f(color.r, color.g, color.b, color.a);
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f(1.0f, 0.0f);
+    glVertex2f(1.0f, 1.0f);
+    glVertex2f(0.0f, 1.0f);
+    glEnd();
+
+    glPopMatrix();
+}
+
+void Viewer::drawContextMenu()
+{
+    // Ensure no shader program is active for fixed-function pipeline rendering
+    glUseProgram(0);
+
+    // Placeholder for context menu drawing
+    // This would typically involve setting up an orthographic projection
+    // and drawing 2D UI elements. For simplicity, we'll draw a colored rectangle.
+
+    // Disable depth test for UI elements
+    glDisable(GL_DEPTH_TEST);
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, width, height, 0, -1, 1); // Orthographic projection for 2D
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    // Menu background
+    glColor4f(1.0f, 0.0f, 1.0f, 1.0f); // Bright Magenta for debugging visibility
+    float menuWidth = 200.0f;
+    float menuHeight = 195.0f;
+    float padding = 10.0f;
+    float itemHeight = 25.0f;
+
+    // Fixed position for debugging
+    float menuDrawX = m_contextMenuX;
+    float menuDrawY = m_contextMenuY;
+
+    // Apply boundary checks to keep the menu within screen
+    if (menuDrawX + menuWidth + padding > width)
+        menuDrawX = width - menuWidth - padding;
+    if (menuDrawY + menuHeight + padding > height)
+        menuDrawY = height - menuHeight - padding;
+    if (menuDrawX < padding)
+        menuDrawX = padding;
+    if (menuDrawY < padding)
+        menuDrawY = padding;
+
+    glBegin(GL_QUADS);
+    glVertex2f(menuDrawX, menuDrawY);
+    glVertex2f(menuDrawX + menuWidth, menuDrawY);
+    glVertex2f(menuDrawX + menuWidth, menuDrawY + menuHeight);
+    glVertex2f(menuDrawX, menuDrawY + menuHeight);
+    glEnd();
+
+    // Menu items
+    // Item 1: Toggle Lighting
+    float item1Y = menuDrawY + padding;
+    glColor4f(0.8f, 0.8f, 0.8f, 1.0f); // Light gray button color
+    glBegin(GL_QUADS);
+    glVertex2f(menuDrawX + padding, item1Y);
+    glVertex2f(menuDrawX + menuWidth - padding, item1Y);
+    glVertex2f(menuDrawX + menuWidth - padding, item1Y + itemHeight);
+    glVertex2f(menuDrawX + padding, item1Y + itemHeight);
+    glEnd();
+    drawTextStub(menuDrawX + padding + 5.0f, item1Y + itemHeight / 2 - 8.0f, "Toggle Lighting", 1.0f, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+    // Item 2: Toggle Edges
+    float item2Y = item1Y + itemHeight + padding / 2;
+    glBegin(GL_QUADS);
+    glVertex2f(menuDrawX + padding, item2Y);
+    glVertex2f(menuDrawX + menuWidth - padding, item2Y);
+    glVertex2f(menuDrawX + menuWidth - padding, item2Y + itemHeight);
+    glVertex2f(menuDrawX + padding, item2Y + itemHeight);
+    glEnd();
+    drawTextStub(menuDrawX + padding + 5.0f, item2Y + itemHeight / 2 - 8.0f, "Toggle Edges", 1.0f, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+    // Item 3: Toggle Perspective
+    float item3Y = item2Y + itemHeight + padding / 2;
+    glBegin(GL_QUADS);
+    glVertex2f(menuDrawX + padding, item3Y);
+    glVertex2f(menuDrawX + menuWidth - padding, item3Y);
+    glVertex2f(menuDrawX + menuWidth - padding, item3Y + itemHeight);
+    glVertex2f(menuDrawX + padding, item3Y + itemHeight);
+    glEnd();
+    drawTextStub(menuDrawX + padding + 5.0f, item3Y + itemHeight / 2 - 8.0f, "Toggle Perspective", 1.0f, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+    // Item 4: Toggle Lighting (L)
+    float item4Y = item3Y + itemHeight + padding / 2;
+    glBegin(GL_QUADS);
+    glVertex2f(menuDrawX + padding, item4Y);
+    glVertex2f(menuDrawX + menuWidth - padding, item4Y);
+    glVertex2f(menuDrawX + menuWidth - padding, item4Y + itemHeight);
+    glVertex2f(menuDrawX + padding, item4Y + itemHeight);
+    glEnd();
+    drawTextStub(menuDrawX + padding + 5.0f, item4Y + itemHeight / 2 - 8.0f, "L: Toggle Lighting", 1.0f, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+    // Item 5: Toggle Edges (V)
+    float item5Y = item4Y + itemHeight + padding / 2;
+    glBegin(GL_QUADS);
+    glVertex2f(menuDrawX + padding, item5Y);
+    glVertex2f(menuDrawX + menuWidth - padding, item5Y);
+    glVertex2f(menuDrawX + menuWidth - padding, item5Y + itemHeight);
+    glVertex2f(menuDrawX + padding, item5Y + itemHeight);
+    glEnd();
+    drawTextStub(menuDrawX + padding + 5.0f, item5Y + itemHeight / 2 - 8.0f, "V: Toggle Edges", 1.0f, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+    // Item 6: Toggle Perspective (P)
+    float item6Y = item5Y + itemHeight + padding / 2;
+    glBegin(GL_QUADS);
+    glVertex2f(menuDrawX + padding, item6Y);
+    glVertex2f(menuDrawX + menuWidth - padding, item6Y);
+    glVertex2f(menuDrawX + menuWidth - padding, item6Y + itemHeight);
+    glVertex2f(menuDrawX + padding, item6Y + itemHeight);
+    glEnd();
+    drawTextStub(menuDrawX + padding + 5.0f, item6Y + itemHeight / 2 - 8.0f, "P: Toggle Perspective", 1.0f, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+
+    glEnable(GL_DEPTH_TEST);
+
+    // Re-activate the main shader program
+    mainShader->use();
+}
+
+void Viewer::onMouseButton(int button, int action, double xpos, double ypos)
+{
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+    {
+        m_showContextMenu = !m_showContextMenu; // Toggle menu visibility
+        if (m_showContextMenu)
+        {
+            m_contextMenuX = static_cast<float>(xpos);
+            m_contextMenuY = static_cast<float>(ypos);
+        }
+    }
+    else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+        if (m_showContextMenu)
+        {
+            // Check if a menu item was clicked
+            float menuWidth = 200.0f;
+            float menuHeight = 195.0f;
+            float padding = 10.0f;
+            float itemHeight = 25.0f;
+
+            float menuDrawX = m_contextMenuX;
+            float menuDrawY = m_contextMenuY;
+
+            if (menuDrawX + menuWidth + padding > width)
+                menuDrawX = width - menuWidth - padding;
+            if (menuDrawY + menuHeight + padding > height)
+                menuDrawY = height - menuHeight - padding;
+            if (menuDrawX < padding)
+                menuDrawX = padding;
+            if (menuDrawY < padding)
+                menuDrawY = padding;
+
+            // Item 1: Toggle Lighting
+            float item1XMin = menuDrawX + padding;
+            float item1XMax = menuDrawX + menuWidth - padding;
+            float item1YMin = menuDrawY + padding;
+            float item1YMax = item1YMin + itemHeight;
+
+            if (xpos >= item1XMin && xpos <= item1XMax &&
+                ypos >= item1YMin && ypos <= item1YMax)
+            {
+                m_lightingEnabled = !m_lightingEnabled;
+                std::cout << "Toggle Lighting: " << (m_lightingEnabled ? "On" : "Off") << std::endl;
+            }
+            // Item 2: Toggle Edges
+            float item2XMin = menuDrawX + padding;
+            float item2XMax = menuDrawX + menuWidth - padding;
+            float item2YMin = item1YMax + padding / 2;
+            float item2YMax = item2YMin + itemHeight;
+
+            if (xpos >= item2XMin && xpos <= item2XMax &&
+                ypos >= item2YMin && ypos <= item2YMax)
+            {
+                m_show_edges = !m_show_edges;
+                std::cout << "Toggle Edges: " << (m_show_edges ? "On" : "Off") << std::endl;
+            }
+
+            // Item 3: Toggle Perspective
+            float item3XMin = menuDrawX + padding;
+            float item3XMax = menuDrawX + menuWidth - padding;
+            float item3YMin = item2YMax + padding / 2;
+            float item3YMax = item3YMin + itemHeight;
+
+            if (xpos >= item3XMin && xpos <= item3XMax &&
+                ypos >= item3YMin && ypos <= item3YMax)
+            {
+                usePerspective = !usePerspective;
+                std::cout << "Toggle Perspective: " << (usePerspective ? "Perspective" : "Orthographic") << std::endl;
+            }
+
+            m_showContextMenu = false; // Dismiss menu after selection
+        }
+        firstMouse = true; // Reset firstMouse to avoid jump when orbiting after menu close
+    }
 }

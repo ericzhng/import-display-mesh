@@ -26,7 +26,7 @@ bool Window::init()
     // Set OpenGL version and profile (good practice)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
     window = glfwCreateWindow(width, height, title.c_str(), NULL, NULL);
     if (!window)
@@ -43,6 +43,7 @@ bool Window::init()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetKeyCallback(window, key_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback); // Register mouse button callback
 
     // Initialize GLEW
     if (glewInit() != GLEW_OK)
@@ -92,4 +93,15 @@ void Window::scroll_callback(GLFWwindow *w, double xoffset, double yoffset)
     Window *win = static_cast<Window *>(glfwGetWindowUserPointer(w));
     if (win && win->eventHandler)
         win->eventHandler->onScroll(static_cast<float>(yoffset));
+}
+
+void Window::mouse_button_callback(GLFWwindow *w, int button, int action, int mods)
+{
+    Window *win = static_cast<Window *>(glfwGetWindowUserPointer(w));
+    if (win && win->eventHandler)
+    {
+        double xpos, ypos;
+        glfwGetCursorPos(w, &xpos, &ypos);
+        win->eventHandler->onMouseButton(button, action, xpos, ypos);
+    }
 }

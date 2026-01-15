@@ -19,6 +19,9 @@ public:
 
     // Called on a mouse scroll wheel event.
     virtual void onScroll(float yoffset) = 0;
+
+    // Called on a mouse button event (press or release).
+    virtual void onMouseButton(int button, int action, double xpos, double ypos) = 0;
 };
 
 #endif

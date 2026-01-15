@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     try
     {
         std::cout << "Initializing Window..." << std::endl;
-        Window window(800, 600, "Structural Mesh Viewer");
+        Window window(800, 600, "3D Viewer");
         if (!window.init())
         {
             std::cerr << "FATAL: Window initialization failed." << std::endl;

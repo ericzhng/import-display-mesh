@@ -28,7 +28,8 @@ public:
     void onKey(int key, int action) override;
     void onMouseMove(float xpos, float ypos, bool leftButton, bool middleButton) override;
     void onScroll(float yoffset) override;
-
+    void onMouseButton(int button, int action, double xpos, double ypos) override;
+    void drawContextMenu();
     void setPerspective(bool enable) { usePerspective = enable; }
 
 private:
@@ -47,4 +48,12 @@ private:
     bool m_show_edges = false; // Added for wireframe toggling
     bool m_lightingEnabled;    // New: To toggle lighting
     float m_ambientStrength;   // New: To control ambient light strength
+
+    // Context menu state
+    bool m_showContextMenu = false;
+    float m_contextMenuX = 0.0f;
+    float m_contextMenuY = 0.0f;
+
+    // Helper for text rendering (stub)
+    void drawTextStub(float x, float y, const std::string& text, float fontSize, glm::vec4 color);
 };
