@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GL/glew.h>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <memory>
@@ -12,6 +12,7 @@
 #include "Background.h"
 #include "AxesWidget.h"
 #include "IEventHandler.h"
+#include "UiRenderer.h" // Include UiRenderer
 
 class Viewer : public IEventHandler
 {
@@ -40,6 +41,7 @@ private:
     std::unique_ptr<Model> model;
     std::unique_ptr<Background> background;
     std::unique_ptr<AxesWidget> axesWidget;
+    std::unique_ptr<UiRenderer> uiRenderer; // Add UiRenderer member
 
     // State
     bool usePerspective;

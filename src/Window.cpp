@@ -1,5 +1,6 @@
 #include "Window.h"
 #include <iostream>
+#include <glad/glad.h>
 
 // Constructor
 Window::Window(int width, int height, const std::string &title)
@@ -27,6 +28,7 @@ bool Window::init()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // Uncomment for macOS
 
     window = glfwCreateWindow(width, height, title.c_str(), NULL, NULL);
     if (!window)
@@ -45,10 +47,10 @@ bool Window::init()
     glfwSetKeyCallback(window, key_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback); // Register mouse button callback
 
-    // Initialize GLEW
-    if (glewInit() != GLEW_OK)
+    // Initialize GLAD
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-        std::cerr << "Failed to initialize GLEW" << std::endl;
+        std::cerr << "Failed to initialize GLAD" << std::endl;
         return false;
     }
     return true;

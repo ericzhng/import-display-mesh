@@ -7,14 +7,14 @@ The goal of this project is to develop a lightweight, high-performance C++ 3D Mo
 - **Rendering Engine:** Implements a modern OpenGL rendering pipeline (VBOs, VAOs) with custom shaders for model and background rendering.
 - **Interactive Viewing:** Features a flexible camera system allowing users to inspect models via mouse interactions (rotate, pan, zoom).
 - **Visualization Aids:** Includes coordinate axes and a gradient background to enhance spatial understanding of structural meshes.
-- **Cross-Platform:** Built on top of GLFW and GLEW for cross-platform windowing and OpenGL context management.
+- **Cross-Platform:** Built on top of GLFW and GLAD for cross-platform windowing and OpenGL context management.
 
 ## Technical Stack
 - **Language:** C++
 - **Graphics API:** OpenGL
 - **Libraries:**
     - `GLFW`: Window creation and input handling.
-    - `GLEW`: OpenGL extension loading.
+    - `GLAD`: OpenGL extension loading.
     - `GLM`: Mathematics (vectors, matrices).
     - `Assimp`: 3D model import.
 
@@ -31,7 +31,7 @@ The goal of this project is to develop a lightweight, high-performance C++ 3D Mo
 *   CMake (3.10 or higher)
 *   C++ Compiler (supporting C++17, In Windows, using Visual Studio Build Tools)
 *   VCPKG (latest version, if in Windows)
-*   Development libraries for GLFW, GLEW, and Assimp must be installed and findable by CMake.
+*   Development libraries for GLFW, and Assimp must be installed and findable by CMake.
 
 ### Build Instructions
 1.  Create a build directory:

@@ -1,5 +1,5 @@
 #include "AxesWidget.h"
-#include <GL/glew.h>
+#include <glad/glad.h>
 #include <glm/gtc/matrix_transform.hpp>
 
 AxesWidget::AxesWidget() : axesVAO(0), axesVBO(0), labelVAO(0), labelVBO(0)

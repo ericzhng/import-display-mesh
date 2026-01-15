@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find Packages
-find_package(GLEW REQUIRED)
+
 find_package(glfw3 REQUIRED)
 find_package(assimp REQUIRED)
 
@@ -30,26 +30,20 @@ file(GLOB_RECURSE HEADERS "src/*.h")
 # FetchContent_MakeAvailable(glm)
 
 # --- Executable Target ---
+set_source_files_properties(vendor/glad/src/glad.c PROPERTIES LANGUAGE C)
 add_executable(MeshViewer 
-    src/main.cpp
-    src/AxesWidget.cpp
-    src/Background.cpp
-    src/Camera.cpp 
-    src/Mesh.cpp
-    src/Model.cpp
-    src/Shader.cpp
-    src/Viewer.cpp
-    src/Window.cpp
+    ${SOURCES}
+    src/UiRenderer.cpp
+    vendor/glad/src/glad.c
 )
 
 target_include_directories(MeshViewer PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
-    ${GLEW_INCLUDE_DIRS} 
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/glad/include"
     ${ASSIMP_INCLUDE_DIRS}
 )
 
 target_link_libraries(MeshViewer PRIVATE
-    GLEW::GLEW 
     glfw 
     glm::glm 
     assimp::assimp

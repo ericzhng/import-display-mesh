@@ -12,6 +12,7 @@ Viewer::Viewer(int width, int height)
 {
     background = std::make_unique<Background>();
     axesWidget = std::make_unique<AxesWidget>();
+    uiRenderer = std::make_unique<UiRenderer>(); // Initialize UiRenderer
 }
 
 Viewer::~Viewer()
@@ -169,54 +170,35 @@ void Viewer::drawTextStub(float x, float y, const std::string &text, float fontS
     // In a real application, you would use a font rendering library (e.g., FreeType)
     // or a textured font atlas.
     // For now, we'll draw a small colored rectangle to indicate text presence.
-    glPushMatrix();
-    glTranslatef(x, y, 0.0f);
-    glScalef(fontSize * 0.5f, fontSize, 1.0f); // Scale placeholder based on font size
-
-    glColor4f(color.r, color.g, color.b, color.a);
-    glBegin(GL_QUADS);
-    glVertex2f(0.0f, 0.0f);
-    glVertex2f(1.0f, 0.0f);
-    glVertex2f(1.0f, 1.0f);
-    glVertex2f(0.0f, 1.0f);
-    glEnd();
-
-    glPopMatrix();
+    if (uiRenderer)
+    {
+        // Calculate the position and size of the placeholder quad
+        float quadWidth = fontSize * 0.5f * 10.0f;  // Arbitrary scaling for visibility
+        float quadHeight = fontSize * 1.0f * 10.0f; // Arbitrary scaling for visibility
+        glm::mat4 orthoProjection = glm::ortho(0.0f, (float)width, (float)height, 0.0f, -1.0f, 1.0f);
+        uiRenderer->drawQuad(x, y, quadWidth, quadHeight, color, orthoProjection);
+    }
 }
 
 void Viewer::drawContextMenu()
 {
-    // Ensure no shader program is active for fixed-function pipeline rendering
-    glUseProgram(0);
+    if (!uiRenderer)
+        return;
 
-    // Placeholder for context menu drawing
-    // This would typically involve setting up an orthographic projection
-    // and drawing 2D UI elements. For simplicity, we'll draw a colored rectangle.
+    // Set up orthographic projection for 2D UI
+    // glm::ortho(left, right, bottom, top, near, far)
+    glm::mat4 orthoProjection = glm::ortho(0.0f, (float)width, (float)height, 0.0f, -1.0f, 1.0f);
 
-    // Disable depth test for UI elements
-    glDisable(GL_DEPTH_TEST);
-
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0, width, height, 0, -1, 1); // Orthographic projection for 2D
-
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
-
-    // Menu background
-    glColor4f(1.0f, 0.0f, 1.0f, 1.0f); // Bright Magenta for debugging visibility
+    // Menu properties
     float menuWidth = 200.0f;
     float menuHeight = 195.0f;
     float padding = 10.0f;
     float itemHeight = 25.0f;
 
-    // Fixed position for debugging
+    // Apply boundary checks to keep the menu within screen
     float menuDrawX = m_contextMenuX;
     float menuDrawY = m_contextMenuY;
 
-    // Apply boundary checks to keep the menu within screen
     if (menuDrawX + menuWidth + padding > width)
         menuDrawX = width - menuWidth - padding;
     if (menuDrawY + menuHeight + padding > height)
@@ -226,84 +208,39 @@ void Viewer::drawContextMenu()
     if (menuDrawY < padding)
         menuDrawY = padding;
 
-    glBegin(GL_QUADS);
-    glVertex2f(menuDrawX, menuDrawY);
-    glVertex2f(menuDrawX + menuWidth, menuDrawY);
-    glVertex2f(menuDrawX + menuWidth, menuDrawY + menuHeight);
-    glVertex2f(menuDrawX, menuDrawY + menuHeight);
-    glEnd();
+    // Menu background
+    uiRenderer->drawQuad(menuDrawX, menuDrawY, menuWidth, menuHeight, glm::vec4(0.2f, 0.2f, 0.2f, 0.8f), orthoProjection); // Dark gray, semi-transparent
 
     // Menu items
     // Item 1: Toggle Lighting
     float item1Y = menuDrawY + padding;
-    glColor4f(0.8f, 0.8f, 0.8f, 1.0f); // Light gray button color
-    glBegin(GL_QUADS);
-    glVertex2f(menuDrawX + padding, item1Y);
-    glVertex2f(menuDrawX + menuWidth - padding, item1Y);
-    glVertex2f(menuDrawX + menuWidth - padding, item1Y + itemHeight);
-    glVertex2f(menuDrawX + padding, item1Y + itemHeight);
-    glEnd();
-    drawTextStub(menuDrawX + padding + 5.0f, item1Y + itemHeight / 2 - 8.0f, "Toggle Lighting", 1.0f, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    uiRenderer->drawQuad(menuDrawX + padding, item1Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection); // Gray button
+    drawTextStub(menuDrawX + padding + 5.0f, item1Y + itemHeight / 2 - 8.0f, "Toggle Lighting", 1.0f, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));       // White text
 
     // Item 2: Toggle Edges
     float item2Y = item1Y + itemHeight + padding / 2;
-    glBegin(GL_QUADS);
-    glVertex2f(menuDrawX + padding, item2Y);
-    glVertex2f(menuDrawX + menuWidth - padding, item2Y);
-    glVertex2f(menuDrawX + menuWidth - padding, item2Y + itemHeight);
-    glVertex2f(menuDrawX + padding, item2Y + itemHeight);
-    glEnd();
-    drawTextStub(menuDrawX + padding + 5.0f, item2Y + itemHeight / 2 - 8.0f, "Toggle Edges", 1.0f, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    uiRenderer->drawQuad(menuDrawX + padding, item2Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
+    drawTextStub(menuDrawX + padding + 5.0f, item2Y + itemHeight / 2 - 8.0f, "Toggle Edges", 1.0f, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
     // Item 3: Toggle Perspective
     float item3Y = item2Y + itemHeight + padding / 2;
-    glBegin(GL_QUADS);
-    glVertex2f(menuDrawX + padding, item3Y);
-    glVertex2f(menuDrawX + menuWidth - padding, item3Y);
-    glVertex2f(menuDrawX + menuWidth - padding, item3Y + itemHeight);
-    glVertex2f(menuDrawX + padding, item3Y + itemHeight);
-    glEnd();
-    drawTextStub(menuDrawX + padding + 5.0f, item3Y + itemHeight / 2 - 8.0f, "Toggle Perspective", 1.0f, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    uiRenderer->drawQuad(menuDrawX + padding, item3Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
+    drawTextStub(menuDrawX + padding + 5.0f, item3Y + itemHeight / 2 - 8.0f, "Toggle Perspective", 1.0f, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
     // Item 4: Toggle Lighting (L)
     float item4Y = item3Y + itemHeight + padding / 2;
-    glBegin(GL_QUADS);
-    glVertex2f(menuDrawX + padding, item4Y);
-    glVertex2f(menuDrawX + menuWidth - padding, item4Y);
-    glVertex2f(menuDrawX + menuWidth - padding, item4Y + itemHeight);
-    glVertex2f(menuDrawX + padding, item4Y + itemHeight);
-    glEnd();
-    drawTextStub(menuDrawX + padding + 5.0f, item4Y + itemHeight / 2 - 8.0f, "L: Toggle Lighting", 1.0f, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    uiRenderer->drawQuad(menuDrawX + padding, item4Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
+    drawTextStub(menuDrawX + padding + 5.0f, item4Y + itemHeight / 2 - 8.0f, "L: Toggle Lighting", 1.0f, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
     // Item 5: Toggle Edges (V)
     float item5Y = item4Y + itemHeight + padding / 2;
-    glBegin(GL_QUADS);
-    glVertex2f(menuDrawX + padding, item5Y);
-    glVertex2f(menuDrawX + menuWidth - padding, item5Y);
-    glVertex2f(menuDrawX + menuWidth - padding, item5Y + itemHeight);
-    glVertex2f(menuDrawX + padding, item5Y + itemHeight);
-    glEnd();
-    drawTextStub(menuDrawX + padding + 5.0f, item5Y + itemHeight / 2 - 8.0f, "V: Toggle Edges", 1.0f, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+    uiRenderer->drawQuad(menuDrawX + padding, item5Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
+    drawTextStub(menuDrawX + padding + 5.0f, item5Y + itemHeight / 2 - 8.0f, "V: Toggle Edges", 1.0f, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
     // Item 6: Toggle Perspective (P)
     float item6Y = item5Y + itemHeight + padding / 2;
-    glBegin(GL_QUADS);
-    glVertex2f(menuDrawX + padding, item6Y);
-    glVertex2f(menuDrawX + menuWidth - padding, item6Y);
-    glVertex2f(menuDrawX + menuWidth - padding, item6Y + itemHeight);
-    glVertex2f(menuDrawX + padding, item6Y + itemHeight);
-    glEnd();
-    drawTextStub(menuDrawX + padding + 5.0f, item6Y + itemHeight / 2 - 8.0f, "P: Toggle Perspective", 1.0f, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
-
-    glEnable(GL_DEPTH_TEST);
-
-    // Re-activate the main shader program
-    mainShader->use();
+    uiRenderer->drawQuad(menuDrawX + padding, item6Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
+    drawTextStub(menuDrawX + padding + 5.0f, item6Y + itemHeight / 2 - 8.0f, "P: Toggle Perspective", 1.0f, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
 void Viewer::onMouseButton(int button, int action, double xpos, double ypos)

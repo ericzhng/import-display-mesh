@@ -1,5 +1,5 @@
 #include "Background.h"
-#include <GL/glew.h>
+#include <glad/glad.h>
 
 Background::Background() : quadVAO(0), quadVBO(0)
 {
