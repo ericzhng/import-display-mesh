@@ -34,6 +34,7 @@ set_source_files_properties(vendor/glad/src/glad.c PROPERTIES LANGUAGE C)
 add_executable(MeshViewer 
     ${SOURCES}
     src/UiRenderer.cpp
+    src/TextRenderer.cpp # Explicitly add TextRenderer.cpp
     vendor/glad/src/glad.c
 )
 

@@ -13,6 +13,7 @@
 #include "AxesWidget.h"
 #include "IEventHandler.h"
 #include "UiRenderer.h" // Include UiRenderer
+#include "TextRenderer.h" // Include TextRenderer
 
 class Viewer : public IEventHandler
 {
@@ -42,6 +43,7 @@ private:
     std::unique_ptr<Background> background;
     std::unique_ptr<AxesWidget> axesWidget;
     std::unique_ptr<UiRenderer> uiRenderer; // Add UiRenderer member
+    std::unique_ptr<TextRenderer> textRenderer; // Add TextRenderer member
 
     // State
     bool usePerspective;
@@ -56,6 +58,5 @@ private:
     float m_contextMenuX = 0.0f;
     float m_contextMenuY = 0.0f;
 
-    // Helper for text rendering (stub)
-    void drawTextStub(float x, float y, const std::string& text, float fontSize, glm::vec4 color);
+
 };

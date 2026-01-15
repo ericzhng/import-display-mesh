@@ -3,18 +3,24 @@
 
 #include "Shader.h"
 #include <glm/glm.hpp>
+#include <memory> // For std::unique_ptr
+#include "TextRenderer.h" // Include TextRenderer
+#include "UiRenderer.h"   // Include UiRenderer
 
 class AxesWidget
 {
 public:
-    AxesWidget();
+    AxesWidget(int screenWidth, int screenHeight, UiRenderer* uiRenderer);
     ~AxesWidget();
 
-    void Draw(const glm::mat4 &view, const glm::mat4 &projection, Shader &shader);
+    void Draw(const glm::mat4 &view, const glm::mat4 &projection, Shader &shader, int screenWidth, int screenHeight);
 
 private:
     unsigned int axesVAO, axesVBO;
-    unsigned int labelVAO, labelVBO;
+    // Removed labelVAO and labelVBO
+
+    std::unique_ptr<TextRenderer> textRenderer;
+    UiRenderer* uiRenderer; // Pointer to the shared UiRenderer
 
     void init();
 };

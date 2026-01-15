@@ -56,3 +56,25 @@ void UiRenderer::drawQuad(float x, float y, float width, float height, const glm
     glBindVertexArray(0);
     glEnable(GL_DEPTH_TEST); // Re-enable depth test
 }
+
+void UiRenderer::drawCircle(float x, float y, float radius, const glm::vec4& color, const glm::mat4& projection)
+{
+    glDisable(GL_DEPTH_TEST); // Disable depth test for 2D UI elements
+    uiShader->use();
+    uiShader->setMat4("projection", projection);
+    uiShader->setVec4("uColor", color);
+    uiShader->setBool("u_isCircle", true); // Tell the shader to draw a circle
+
+    glBindVertexArray(quadVAO);
+    glm::mat4 model = glm::mat4(1.0f);
+    // Adjust x, y to be the center of the circle, as the quad's origin is top-left
+    model = glm::translate(model, glm::vec3(x - radius, y - radius, 0.0f));
+    model = glm::scale(model, glm::vec3(radius * 2.0f, radius * 2.0f, 1.0f)); // Quad will have side length 2*radius
+    uiShader->setMat4("model", model);
+
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+    
+    uiShader->setBool("u_isCircle", false); // Reset for subsequent drawings
+    glEnable(GL_DEPTH_TEST); // Re-enable depth test
+}

@@ -49,6 +49,9 @@ void Model::processNode(aiNode *node, const aiScene *scene)
 
 Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene)
 {
+    if (!mesh->HasNormals()) {
+        std::cerr << "WARNING: Mesh '" << mesh->mName.C_Str() << "' does not have normals after Assimp processing, generating default (0,0,1)." << std::endl;
+    }
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
 
@@ -72,10 +75,6 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene)
         if (mesh->HasNormals())
         {
             vertex.Normal = glm::vec3(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
-        }
-        else
-        {
-            vertex.Normal = glm::vec3(0.0f, 0.0f, 0.0f);
         }
         vertices.push_back(vertex);
     }

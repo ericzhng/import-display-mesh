@@ -1,9 +1,12 @@
 #include "AxesWidget.h"
 #include <glad/glad.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp> // For glm::value_ptr
 
-AxesWidget::AxesWidget() : axesVAO(0), axesVBO(0), labelVAO(0), labelVBO(0)
+AxesWidget::AxesWidget(int screenWidth, int screenHeight, UiRenderer* uiRenderer)
+    : axesVAO(0), axesVBO(0), uiRenderer(uiRenderer)
 {
+    textRenderer = std::make_unique<TextRenderer>(screenWidth, screenHeight);
     init();
 }
 
@@ -11,8 +14,6 @@ AxesWidget::~AxesWidget()
 {
     glDeleteVertexArrays(1, &axesVAO);
     glDeleteBuffers(1, &axesVBO);
-    glDeleteVertexArrays(1, &labelVAO);
-    glDeleteBuffers(1, &labelVBO);
 }
 
 void AxesWidget::init()
@@ -45,40 +46,23 @@ void AxesWidget::init()
     glBufferData(GL_ARRAY_BUFFER, sizeof(axesVertices), &axesVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
-
-    float labelVertices[] = {
-        // X
-        -0.05f, -0.05f, 0.0f, 0.05f, 0.05f, 0.0f,
-        -0.05f, 0.05f, 0.0f, 0.05f, -0.05f, 0.0f,
-        // Y
-        -0.05f, 0.05f, 0.0f, 0.0f, 0.0f, 0.0f,
-        0.05f, 0.05f, 0.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 0.0f, -0.05f, 0.0f,
-        // Z
-        -0.05f, 0.05f, 0.0f, 0.05f, 0.05f, 0.0f,
-        0.05f, 0.05f, 0.0f, -0.05f, -0.05f, 0.0f,
-        -0.05f, -0.05f, 0.0f, 0.05f, -0.05f, 0.0f};
-
-    glGenVertexArrays(1, &labelVAO);
-    glGenBuffers(1, &labelVBO);
-    glBindVertexArray(labelVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, labelVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(labelVertices), &labelVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
     glBindVertexArray(0);
 }
 
-void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, Shader &shader)
+void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, Shader &shader, int screenWidth, int screenHeight)
 {
-    // 1. Setup Viewport for the corner widget
+    // 1. Setup Viewport for the corner widget (Top-Right)
     int widgetSize = 120; // Size in pixels
-    int margin = 10;      // Distance from bottom-left
+    int margin = 10;      // Distance from edge
+
+    // Calculate top-right position
+    int viewportX = screenWidth - widgetSize - margin;
+    int viewportY = screenHeight - widgetSize - margin; // OpenGL's Y is usually bottom-up
 
     glEnable(GL_SCISSOR_TEST);
-    glScissor(margin, margin, widgetSize, widgetSize);
-    glViewport(margin, margin, widgetSize, widgetSize);
-    glClear(GL_DEPTH_BUFFER_BIT);
+    glScissor(viewportX, viewportY, widgetSize, widgetSize);
+    glViewport(viewportX, viewportY, widgetSize, widgetSize);
+    glClear(GL_DEPTH_BUFFER_BIT); // Clear depth buffer for the widget viewport
     glDisable(GL_SCISSOR_TEST);
 
     shader.use();
@@ -109,40 +93,54 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
     glDrawArrays(GL_LINES, 4, 2);
     glDrawArrays(GL_TRIANGLES, 18, 6);
 
-    // 4. Draw 2D Labels
-    // This part is complex and involves projecting the axes tips to screen space
-    // to draw the 'X', 'Y', 'Z' labels.
-    // For this refactoring, the logic is kept the same.
-    glDisable(GL_DEPTH_TEST);
-    glBindVertexArray(labelVAO);
+    // 4. Draw 2D Labels (X, Y, Z in circles)
+    glDisable(GL_DEPTH_TEST); // Ensure labels are always on top
 
-    shader.setMat4("projection", glm::mat4(1.0f));
-    shader.setMat4("view", glm::mat4(1.0f));
+    // Orthographic projection for UI elements within the widget's viewport
+    glm::mat4 orthoProjection = glm::ortho(0.0f, (float)widgetSize, 0.0f, (float)widgetSize, -1.0f, 1.0f);
 
     glm::vec4 centerClip = widgetProjection * widgetView * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    glm::vec2 centerScreen = glm::vec2(centerClip) / centerClip.w;
+    glm::vec2 centerScreenNDC = glm::vec2(centerClip) / centerClip.w;
 
-    auto drawLabel = [&](glm::vec3 axisDir, glm::vec4 color, int start, int count)
+    // Convert NDC to widget-space coordinates (0 to widgetSize)
+    // NDC (-1 to 1) to widget space (0 to widgetSize)
+    float labelOffsetFactor = 0.9f; // How far labels are from the center
+    float labelCircleRadius = 15.0f; // Radius of the background circle
+    float fontSize = 0.5f; // Scale for the placeholder text
+
+    auto drawAxisLabel = [&](glm::vec3 axisDir, const std::string& label, glm::vec4 axisColor)
     {
         glm::vec4 tipClip = widgetProjection * widgetView * glm::vec4(axisDir, 1.0f);
-        glm::vec2 tipScreen = glm::vec2(tipClip) / tipClip.w;
-        glm::vec2 dir2D = tipScreen - centerScreen;
-
+        glm::vec2 tipScreenNDC = glm::vec2(tipClip) / tipClip.w;
+        
+        glm::vec2 dir2D = tipScreenNDC - centerScreenNDC;
         if (glm::length(dir2D) > 0.001f)
             dir2D = glm::normalize(dir2D);
+        
+        // Position the label circles within the widget's screen space
+        glm::vec2 labelCenterPosNDC = centerScreenNDC + dir2D * labelOffsetFactor;
+        
+        // Convert labelCenterPosNDC (-1 to 1) to widget space (0 to widgetSize)
+        float labelX = (labelCenterPosNDC.x * 0.5f + 0.5f) * widgetSize;
+        float labelY = (labelCenterPosNDC.y * 0.5f + 0.5f) * widgetSize;
 
-        glm::vec2 labelPos = centerScreen + dir2D * 0.8f;
-        glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3(labelPos, 0.0f));
-        model = glm::scale(model, glm::vec3(2.0f, 2.0f, 1.0f));
+        // Draw background circle
+        if (uiRenderer) {
+            uiRenderer->drawCircle(labelX, labelY, labelCircleRadius, glm::vec4(0.2f, 0.2f, 0.2f, 0.8f), orthoProjection);
+        }
 
-        shader.setMat4("model", model);
-        shader.setVec4("objectColor", color);
-        glDrawArrays(GL_LINES, start, count);
+        // Draw text label
+        if (textRenderer) {
+            // Adjust text position to be centered within the circle
+            float textOffsetX = (label.length() * fontSize * 10.0f) * 0.5f; // Rough estimation for centering
+            float textOffsetY = (fontSize * 10.0f) * 0.5f; // Rough estimation for centering
+            textRenderer->renderText(label, labelX - textOffsetX, labelY + textOffsetY, fontSize, axisColor);
+        }
     };
 
-    drawLabel(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), 0, 4);  // X
-    drawLabel(glm::vec3(0.0f, 1.0f, 0.0f), glm::vec4(0.0f, 0.8f, 0.0f, 1.0f), 4, 6);  // Y
-    drawLabel(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), 10, 6); // Z
+    drawAxisLabel(glm::vec3(1.0f, 0.0f, 0.0f), "X", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+    drawAxisLabel(glm::vec3(0.0f, 1.0f, 0.0f), "Y", glm::vec4(0.0f, 0.8f, 0.0f, 1.0f));
+    drawAxisLabel(glm::vec3(0.0f, 0.0f, 1.0f), "Z", glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
 
     // Restore state
     glEnable(GL_DEPTH_TEST);

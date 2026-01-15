@@ -1,6 +1,7 @@
 #include "Viewer.h"
 #include "Background.h"
 #include "AxesWidget.h"
+#include "TextRenderer.h" // Include TextRenderer
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 
@@ -8,11 +9,12 @@ Viewer::Viewer(int width, int height)
     : width(width), height(height),
       camera(glm::vec3(10.0f, -10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
       usePerspective(false), firstMouse(true), lastX(width / 2.0f), lastY(height / 2.0f),
-      m_lightingEnabled(true), m_ambientStrength(0.1f) // Initialize new members
+      m_lightingEnabled(true), m_ambientStrength(0.8f) // Initialize new members
 {
     background = std::make_unique<Background>();
-    axesWidget = std::make_unique<AxesWidget>();
     uiRenderer = std::make_unique<UiRenderer>(); // Initialize UiRenderer
+    axesWidget = std::make_unique<AxesWidget>(width, height, uiRenderer.get()); // Initialize AxesWidget with screen dimensions and uiRenderer
+    textRenderer = std::make_unique<TextRenderer>(width, height); // Initialize TextRenderer
 }
 
 Viewer::~Viewer()
@@ -100,7 +102,7 @@ void Viewer::render()
         // 3. Draw Axes Widget
         if (axesWidget)
         {
-            axesWidget->Draw(view, projection, *mainShader);
+            axesWidget->Draw(view, projection, *mainShader, width, height); // Pass screen width and height
         }
 
         // 4. Draw Context Menu if active
@@ -115,6 +117,10 @@ void Viewer::onResize(int w, int h)
 {
     width = w;
     height = h;
+    // Update TextRenderer and AxesWidget with new screen dimensions
+    // Re-initialize unique_ptrs to recreate objects with new dimensions
+    textRenderer = std::make_unique<TextRenderer>(width, height);
+    axesWidget = std::make_unique<AxesWidget>(width, height, uiRenderer.get());
 }
 
 void Viewer::onKey(int key, int action)
@@ -127,7 +133,10 @@ void Viewer::onKey(int key, int action)
         m_show_edges = !m_show_edges;
 
     if (key == GLFW_KEY_L && action == GLFW_PRESS)
+    {
         m_lightingEnabled = !m_lightingEnabled; // Toggle lighting with 'L' key
+        std::cout << "L key pressed. Lighting Enabled: " << (m_lightingEnabled ? "true" : "false") << std::endl;
+    }
 }
 
 void Viewer::onMouseMove(float xpos, float ypos, bool leftButton, bool middleButton)
@@ -163,26 +172,10 @@ void Viewer::onScroll(float yoffset)
     camera.ProcessMouseScroll(yoffset);
 }
 
-// Function to draw the context menu
-void Viewer::drawTextStub(float x, float y, const std::string &text, float fontSize, glm::vec4 color)
-{
-    // Placeholder for text rendering.
-    // In a real application, you would use a font rendering library (e.g., FreeType)
-    // or a textured font atlas.
-    // For now, we'll draw a small colored rectangle to indicate text presence.
-    if (uiRenderer)
-    {
-        // Calculate the position and size of the placeholder quad
-        float quadWidth = fontSize * 0.5f * 10.0f;  // Arbitrary scaling for visibility
-        float quadHeight = fontSize * 1.0f * 10.0f; // Arbitrary scaling for visibility
-        glm::mat4 orthoProjection = glm::ortho(0.0f, (float)width, (float)height, 0.0f, -1.0f, 1.0f);
-        uiRenderer->drawQuad(x, y, quadWidth, quadHeight, color, orthoProjection);
-    }
-}
 
 void Viewer::drawContextMenu()
 {
-    if (!uiRenderer)
+    if (!uiRenderer || !textRenderer)
         return;
 
     // Set up orthographic projection for 2D UI
@@ -194,6 +187,7 @@ void Viewer::drawContextMenu()
     float menuHeight = 195.0f;
     float padding = 10.0f;
     float itemHeight = 25.0f;
+    float fontSize = 0.5f;
 
     // Apply boundary checks to keep the menu within screen
     float menuDrawX = m_contextMenuX;
@@ -215,32 +209,32 @@ void Viewer::drawContextMenu()
     // Item 1: Toggle Lighting
     float item1Y = menuDrawY + padding;
     uiRenderer->drawQuad(menuDrawX + padding, item1Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection); // Gray button
-    drawTextStub(menuDrawX + padding + 5.0f, item1Y + itemHeight / 2 - 8.0f, "Toggle Lighting", 1.0f, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));       // White text
+    textRenderer->renderText("Toggle Lighting", menuDrawX + padding + 5.0f, item1Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));       // White text
 
     // Item 2: Toggle Edges
     float item2Y = item1Y + itemHeight + padding / 2;
     uiRenderer->drawQuad(menuDrawX + padding, item2Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    drawTextStub(menuDrawX + padding + 5.0f, item2Y + itemHeight / 2 - 8.0f, "Toggle Edges", 1.0f, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    textRenderer->renderText("Toggle Edges", menuDrawX + padding + 5.0f, item2Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
     // Item 3: Toggle Perspective
     float item3Y = item2Y + itemHeight + padding / 2;
     uiRenderer->drawQuad(menuDrawX + padding, item3Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    drawTextStub(menuDrawX + padding + 5.0f, item3Y + itemHeight / 2 - 8.0f, "Toggle Perspective", 1.0f, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    textRenderer->renderText("Toggle Perspective", menuDrawX + padding + 5.0f, item3Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
     // Item 4: Toggle Lighting (L)
     float item4Y = item3Y + itemHeight + padding / 2;
     uiRenderer->drawQuad(menuDrawX + padding, item4Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    drawTextStub(menuDrawX + padding + 5.0f, item4Y + itemHeight / 2 - 8.0f, "L: Toggle Lighting", 1.0f, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    textRenderer->renderText("L: Toggle Lighting", menuDrawX + padding + 5.0f, item4Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
     // Item 5: Toggle Edges (V)
     float item5Y = item4Y + itemHeight + padding / 2;
     uiRenderer->drawQuad(menuDrawX + padding, item5Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    drawTextStub(menuDrawX + padding + 5.0f, item5Y + itemHeight / 2 - 8.0f, "V: Toggle Edges", 1.0f, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    textRenderer->renderText("V: Toggle Edges", menuDrawX + padding + 5.0f, item5Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 
     // Item 6: Toggle Perspective (P)
     float item6Y = item5Y + itemHeight + padding / 2;
     uiRenderer->drawQuad(menuDrawX + padding, item6Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    drawTextStub(menuDrawX + padding + 5.0f, item6Y + itemHeight / 2 - 8.0f, "P: Toggle Perspective", 1.0f, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    textRenderer->renderText("P: Toggle Perspective", menuDrawX + padding + 5.0f, item6Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
 void Viewer::onMouseButton(int button, int action, double xpos, double ypos)
