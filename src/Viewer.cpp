@@ -7,7 +7,7 @@
 
 Viewer::Viewer(int width, int height)
     : width(width), height(height),
-      camera(glm::vec3(10.0f, -10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+      camera(glm::vec3(10.0f, -10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
       usePerspective(false), firstMouse(true), lastX(width / 2.0f), lastY(height / 2.0f),
       m_lightingEnabled(true), m_ambientStrength(0.1f) // Initialize new members
 {
@@ -35,7 +35,33 @@ void Viewer::init()
 void Viewer::loadModel(const std::string &path)
 {
     model = std::make_unique<Model>(path.c_str());
-    camera.SetTarget(model->GetCenter(), 10.0f);
+    autoCenterAndOrientModel();
+}
+
+void Viewer::autoCenterAndOrientModel()
+{
+    if (!model)
+    {
+        return; // No model loaded, nothing to do
+    }
+
+    glm::vec3 modelCenter = model->GetCenter();
+    glm::vec3 modelSize = model->GetSize();
+
+    // Calculate camera distance to fit the entire model in view
+    float maxDim = glm::max(glm::max(modelSize.x, modelSize.y), modelSize.z);
+    float fovRadians = glm::radians(camera.GetZoom()); // This is FOV_y
+    float distance = (maxDim / 2.0f) / glm::tan(fovRadians / 2.0f);
+
+    // Add a buffer distance to ensure the model is fully visible
+    distance *= 1.5f; // 50% buffer
+
+    // Position the camera to look at the model's center from an isometric view (e.g., along (1,1,1) vector)
+    glm::vec3 isometricDirection = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
+    glm::vec3 cameraPosition = modelCenter + isometricDirection * distance;
+    glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f); // Assuming Y is up for the scene
+
+    camera.SetPositionAndTarget(cameraPosition, modelCenter, worldUp);
 }
 
 void Viewer::render()
@@ -127,10 +153,16 @@ void Viewer::onKey(int key, int action)
 {
     // Key bindings are now handled by context menu
     if (key == GLFW_KEY_P && action == GLFW_PRESS)
+    {
         usePerspective = !usePerspective;
+        std::cout << "P key pressed. Perspective Mode Enabled: " << (usePerspective ? "true" : "false") << std::endl;
+    }
 
     if (key == GLFW_KEY_V && action == GLFW_PRESS)
+    {
         m_show_edges = !m_show_edges;
+        std::cout << "V key pressed. Feature Edge Enabled: " << (m_show_edges ? "true" : "false") << std::endl;
+    }
 
     if (key == GLFW_KEY_L && action == GLFW_PRESS)
     {
@@ -142,6 +174,12 @@ void Viewer::onKey(int key, int action)
     {
         m_showAxesWidget = !m_showAxesWidget;
         std::cout << "C key pressed. Axes Widget Visible: " << (m_showAxesWidget ? "true" : "false") << std::endl;
+    }
+
+    if (key == GLFW_KEY_A && action == GLFW_PRESS) // New: Auto-center and orient with 'A' key
+    {
+        autoCenterAndOrientModel();
+        std::cout << "A key pressed. Auto-centered and oriented model." << std::endl;
     }
 }
 
@@ -213,7 +251,7 @@ void Viewer::drawContextMenu()
     // Menu items
     // Item 1: Toggle Lighting
     float item1Y = menuDrawY + padding;
-    uiRenderer->drawQuad(menuDrawX + padding, item1Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);           // Gray button
+    uiRenderer->drawQuad(menuDrawX + padding, item1Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);                            // Gray button
     textRenderer->renderText("Toggle Lighting", menuDrawX + padding + 5.0f, item1Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection); // White text
 
     // Item 2: Toggle Edges

@@ -12,7 +12,7 @@
 #include "Background.h"
 #include "AxesWidget.h"
 #include "IEventHandler.h"
-#include "UiRenderer.h" // Include UiRenderer
+#include "UiRenderer.h"   // Include UiRenderer
 #include "TextRenderer.h" // Include TextRenderer
 
 class Viewer : public IEventHandler
@@ -42,16 +42,16 @@ private:
     std::unique_ptr<Model> model;
     std::unique_ptr<Background> background;
     std::unique_ptr<AxesWidget> axesWidget;
-    std::unique_ptr<UiRenderer> uiRenderer; // Add UiRenderer member
+    std::unique_ptr<UiRenderer> uiRenderer;     // Add UiRenderer member
     std::unique_ptr<TextRenderer> textRenderer; // Add TextRenderer member
 
     // State
     bool usePerspective;
     float lastX, lastY;
     bool firstMouse;
-    bool m_show_edges = false; // Added for wireframe toggling
-    bool m_lightingEnabled;    // New: To toggle lighting
-    float m_ambientStrength;   // New: To control ambient light strength
+    bool m_show_edges = false;    // Added for wireframe toggling
+    bool m_lightingEnabled;       // New: To toggle lighting
+    float m_ambientStrength;      // New: To control ambient light strength
     bool m_showAxesWidget = true; // New: To toggle axes widget visibility
 
     // Context menu state
@@ -59,5 +59,5 @@ private:
     float m_contextMenuX = 0.0f;
     float m_contextMenuY = 0.0f;
 
-
+    void autoCenterAndOrientModel();
 };

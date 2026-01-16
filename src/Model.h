@@ -18,6 +18,7 @@ public:
     Model(const char *path);
     void Draw() const;
     glm::vec3 GetCenter();
+    glm::vec3 GetSize();
 
 private:
     std::vector<Mesh> meshes;

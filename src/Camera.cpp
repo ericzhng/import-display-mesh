@@ -102,10 +102,25 @@ void Camera::SetTarget(glm::vec3 target, float radius)
     updateCameraVectors();
 }
 
+void Camera::SetPositionAndTarget(glm::vec3 position, glm::vec3 target, glm::vec3 up)
+{
+    Position = position;
+    Target = target;
+    WorldUp = up; // Store the provided up vector as the world up
+    Radius = glm::distance(Position, Target);
+
+    // Recalculate camera vectors based on new position, target, and world up
+    Front = glm::normalize(Target - Position);
+    Right = glm::normalize(glm::cross(Front, WorldUp)); // Use WorldUp to derive Right
+    Up = glm::normalize(glm::cross(Right, Front));       // Ensure Up is orthogonal to Front and Right
+}
+
 void Camera::updateCameraVectors()
 {
-    // Re-orthogonalize to prevent floating point drift
+    // This existing method will trust the current 'Up' for re-orthogonalization
+    // after mouse movements.
     Front = glm::normalize(Target - Position);
-    Right = glm::normalize(glm::cross(Front, Up)); // Trust Up more than WorldUp for free rotation
+    Right = glm::normalize(glm::cross(Front, Up));
     Up = glm::normalize(glm::cross(Right, Front));
 }
+

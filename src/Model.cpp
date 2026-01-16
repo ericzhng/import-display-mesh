@@ -21,6 +21,11 @@ glm::vec3 Model::GetCenter()
     return (BoundingBoxMin + BoundingBoxMax) / 2.0f;
 }
 
+glm::vec3 Model::GetSize()
+{
+    return BoundingBoxMax - BoundingBoxMin;
+}
+
 void Model::loadModel(std::string path)
 {
     Assimp::Importer importer;

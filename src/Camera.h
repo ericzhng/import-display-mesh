@@ -36,6 +36,7 @@ public:
     void ProcessMousePanning(float xoffset, float yoffset, int screenHeight);
 
     void SetTarget(glm::vec3 target, float radius);
+    void SetPositionAndTarget(glm::vec3 position, glm::vec3 target, glm::vec3 up);
 
 private:
     // Camera Attributes
