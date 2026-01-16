@@ -9,12 +9,12 @@ Viewer::Viewer(int width, int height)
     : width(width), height(height),
       camera(glm::vec3(10.0f, -10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
       usePerspective(false), firstMouse(true), lastX(width / 2.0f), lastY(height / 2.0f),
-      m_lightingEnabled(true), m_ambientStrength(0.8f) // Initialize new members
+      m_lightingEnabled(true), m_ambientStrength(0.1f) // Initialize new members
 {
     background = std::make_unique<Background>();
-    uiRenderer = std::make_unique<UiRenderer>(); // Initialize UiRenderer
+    uiRenderer = std::make_unique<UiRenderer>();                                // Initialize UiRenderer
     axesWidget = std::make_unique<AxesWidget>(width, height, uiRenderer.get()); // Initialize AxesWidget with screen dimensions and uiRenderer
-    textRenderer = std::make_unique<TextRenderer>(width, height); // Initialize TextRenderer
+    textRenderer = std::make_unique<TextRenderer>(width, height);               // Initialize TextRenderer
 }
 
 Viewer::~Viewer()
@@ -26,6 +26,7 @@ void Viewer::init()
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_FRAMEBUFFER_SRGB); // Enable automatic sRGB color space conversion
 
     // Assume shaders are relative to CWD
     mainShader = std::make_unique<Shader>("shaders/shader.vs", "shaders/shader.fs");
@@ -57,10 +58,6 @@ void Viewer::render()
     {
         mainShader->use();
 
-        // Set lighting uniforms (Headlight)
-        mainShader->setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f)); // White light
-        mainShader->setVec3("lightPos", camera.GetPosition());          // Light at camera's position
-        mainShader->setVec3("viewPos", camera.GetPosition());
         mainShader->setBool("u_lightingEnabled", m_lightingEnabled);  // Pass lighting toggle state
         mainShader->setFloat("u_ambientStrength", m_ambientStrength); // Pass ambient strength
 
@@ -172,7 +169,6 @@ void Viewer::onScroll(float yoffset)
     camera.ProcessMouseScroll(yoffset);
 }
 
-
 void Viewer::drawContextMenu()
 {
     if (!uiRenderer || !textRenderer)
@@ -208,8 +204,8 @@ void Viewer::drawContextMenu()
     // Menu items
     // Item 1: Toggle Lighting
     float item1Y = menuDrawY + padding;
-    uiRenderer->drawQuad(menuDrawX + padding, item1Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection); // Gray button
-    textRenderer->renderText("Toggle Lighting", menuDrawX + padding + 5.0f, item1Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));       // White text
+    uiRenderer->drawQuad(menuDrawX + padding, item1Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);           // Gray button
+    textRenderer->renderText("Toggle Lighting", menuDrawX + padding + 5.0f, item1Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); // White text
 
     // Item 2: Toggle Edges
     float item2Y = item1Y + itemHeight + padding / 2;
