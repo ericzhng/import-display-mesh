@@ -155,6 +155,10 @@ void TextRenderer::renderText(const std::string &text, float x, float y, float s
 
         float w = ch.Size.x * scale;
         float h = ch.Size.y * scale;
+        
+        // DEBUG: Print dimensions for each text rendering call
+        std::cout << "TextRenderer::renderText - Text: '" << text << "', Input Scale: " << scale << ", First char '" << c << "' Dims: xpos=" << xpos << ", ypos=" << ypos << ", w=" << w << ", h=" << h << std::endl;
+
 
         // Update VBO for each character
         float vertices[6][4] = {

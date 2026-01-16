@@ -70,10 +70,10 @@ private:
     float m_contextMenuY = 0.0f;
 
     // Context menu properties (centralized constants)
-    const float MENU_WIDTH = 280.0f;
-    const float ITEM_HEIGHT = 35.0f;
-    const float PADDING = 10.0f;
-    const float FONT_SIZE = 1.0f;
+    const float MENU_WIDTH = 350.0f;
+    const float ITEM_HEIGHT = 45.0f;
+    const float PADDING = 15.0f;
+    // const float FONT_SIZE = 1.2f; // Removed to be calculated dynamically
 
     enum class ContextMenuItem
     {
@@ -113,4 +113,6 @@ private:
     glm::vec3 m_currentModelPosition;   // The model's current animated position
 
     void autoCenterAndOrientModel();
+    // ... existing members ...
+    float getUiScale() const;
 };

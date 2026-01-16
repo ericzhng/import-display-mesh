@@ -402,70 +402,79 @@ void Viewer::onScroll(float yoffset)
     camera.ProcessMouseScroll(yoffset);
 }
 
+// Helper to calculate scale (You can place this at the top of Viewer.cpp or as a private helper)
+float Viewer::getUiScale() const
+{
+    // Reference height (e.g., 1080p).
+    // If the window is 2160p (4K), scale will be 2.0.
+    const float REF_HEIGHT = 1080.0f;
+
+    // Ensure scale doesn't drop below 1.0f (optional, keeps menu readable on small screens)
+    return std::max(1.0f, (float)height / REF_HEIGHT);
+}
+
 void Viewer::drawContextMenu()
 {
     if (!uiRenderer || !textRenderer)
         return;
 
+    // DEBUG: Original m_contextMenu position before alignment calculations
+    std::cout << "drawContextMenu - Initial m_contextMenu Pos: X=" << m_contextMenuX << ", Y=" << m_contextMenuY << std::endl;
+
+    float uiScale = getUiScale();
+
+    float scaledMenuWidth = MENU_WIDTH * uiScale;
+    float scaledItemHeight = ITEM_HEIGHT * uiScale;
+    float scaledPadding = PADDING * uiScale;
+    
+    const float baseFontSize = 1.8f; // Increased base font size for calculation, now local
+    float scaledFontSize = baseFontSize * uiScale;
+
     // Set up orthographic projection for 2D UI
     glm::mat4 orthoProjection = glm::ortho(0.0f, (float)width, (float)height, 0.0f, -1.0f, 1.0f);
 
     // Calculate menu height based on the number of items and their spacing
-    float menuHeight = (static_cast<int>(ContextMenuItem::COUNT) * ITEM_HEIGHT) + (static_cast<int>(ContextMenuItem::COUNT) - 1) * (PADDING / 2) + PADDING * 2;
+    float menuHeight = (static_cast<int>(ContextMenuItem::COUNT) * scaledItemHeight) + (static_cast<int>(ContextMenuItem::COUNT) - 1) * (scaledPadding / 2) + scaledPadding * 2;
 
-    // Apply boundary checks to keep the menu within screen
-    float menuDrawX = m_contextMenuX;
-    float menuDrawY = m_contextMenuY;
+    // Refined alignment: Initially center the menu around the mouse click
+    float menuDrawX = m_contextMenuX - (scaledMenuWidth / 2.0f);
+    float menuDrawY = m_contextMenuY - (menuHeight / 2.0f);
 
-    if (menuDrawX + MENU_WIDTH + PADDING > width)
-        menuDrawX = width - MENU_WIDTH - PADDING;
-    if (menuDrawY + menuHeight + PADDING > height)
-        menuDrawY = height - menuHeight - PADDING;
-    if (menuDrawX < PADDING)
-        menuDrawX = PADDING;
-    if (menuDrawY < PADDING)
-        menuDrawY = PADDING;
+    // Now apply boundary checks to keep the menu within screen
+    if (menuDrawX + scaledMenuWidth + scaledPadding > width)
+        menuDrawX = width - scaledMenuWidth - scaledPadding;
+    if (menuDrawY + menuHeight + scaledPadding > height)
+        menuDrawY = height - menuHeight - scaledPadding;
+    if (menuDrawX < scaledPadding)
+        menuDrawX = scaledPadding;
+    if (menuDrawY < scaledPadding)
+        menuDrawY = scaledPadding;
 
     // Menu background
-    uiRenderer->drawQuad(menuDrawX, menuDrawY, MENU_WIDTH, menuHeight, glm::vec4(0.2f, 0.2f, 0.2f, 0.8f), orthoProjection); // Dark gray, semi-transparent
+    uiRenderer->drawQuad(menuDrawX, menuDrawY, scaledMenuWidth, menuHeight, glm::vec4(0.2f, 0.2f, 0.2f, 0.8f), orthoProjection);
 
     // Menu items
-    float currentItemY = menuDrawY + PADDING;
+    float currentItemY = menuDrawY + scaledPadding;
 
-    // Item: Toggle Lighting
-    uiRenderer->drawQuad(menuDrawX + PADDING, currentItemY, MENU_WIDTH - 2 * PADDING, ITEM_HEIGHT, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("Toggle Lighting (L)", menuDrawX + PADDING + 5.0f, currentItemY + ITEM_HEIGHT / 2 - (FONT_SIZE * 16 / 2), FONT_SIZE, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
-    currentItemY += ITEM_HEIGHT + PADDING / 2;
+    // Helper lambda to draw items to reduce repetition
+    auto drawItem = [&](const std::string &text)
+    {
+        uiRenderer->drawQuad(menuDrawX + scaledPadding, currentItemY, scaledMenuWidth - 2 * scaledPadding, scaledItemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
 
-    // Item: Toggle Edges
-    uiRenderer->drawQuad(menuDrawX + PADDING, currentItemY, MENU_WIDTH - 2 * PADDING, ITEM_HEIGHT, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("Toggle Edges (V)", menuDrawX + PADDING + 5.0f, currentItemY + ITEM_HEIGHT / 2 - (FONT_SIZE * 16 / 2), FONT_SIZE, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
-    currentItemY += ITEM_HEIGHT + PADDING / 2;
+        // Centering text vertically in the item
+        float textY = currentItemY + scaledItemHeight / 2 - (scaledFontSize * 16 / 2);
+        textRenderer->renderText(text, menuDrawX + scaledPadding + (5.0f * uiScale), textY, scaledFontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
 
-    // Item: Toggle Perspective
-    uiRenderer->drawQuad(menuDrawX + PADDING, currentItemY, MENU_WIDTH - 2 * PADDING, ITEM_HEIGHT, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("Toggle Perspective (P)", menuDrawX + PADDING + 5.0f, currentItemY + ITEM_HEIGHT / 2 - (FONT_SIZE * 16 / 2), FONT_SIZE, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
-    currentItemY += ITEM_HEIGHT + PADDING / 2;
+        currentItemY += scaledItemHeight + scaledPadding / 2;
+    };
 
-    // Item: Toggle Background Theme
-    uiRenderer->drawQuad(menuDrawX + PADDING, currentItemY, MENU_WIDTH - 2 * PADDING, ITEM_HEIGHT, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("Toggle Background (B)", menuDrawX + PADDING + 5.0f, currentItemY + ITEM_HEIGHT / 2 - (FONT_SIZE * 16 / 2), FONT_SIZE, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
-    currentItemY += ITEM_HEIGHT + PADDING / 2;
-
-    // Item: Toggle Axes Widget
-    uiRenderer->drawQuad(menuDrawX + PADDING, currentItemY, MENU_WIDTH - 2 * PADDING, ITEM_HEIGHT, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("Toggle Axes (C)", menuDrawX + PADDING + 5.0f, currentItemY + ITEM_HEIGHT / 2 - (FONT_SIZE * 16 / 2), FONT_SIZE, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
-    currentItemY += ITEM_HEIGHT + PADDING / 2;
-
-    // Item: Auto-center Model
-    uiRenderer->drawQuad(menuDrawX + PADDING, currentItemY, MENU_WIDTH - 2 * PADDING, ITEM_HEIGHT, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("Auto-center Model (A)", menuDrawX + PADDING + 5.0f, currentItemY + ITEM_HEIGHT / 2 - (FONT_SIZE * 16 / 2), FONT_SIZE, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
-    currentItemY += ITEM_HEIGHT + PADDING / 2;
-
-    // Item: Import Model
-    uiRenderer->drawQuad(menuDrawX + PADDING, currentItemY, MENU_WIDTH - 2 * PADDING, ITEM_HEIGHT, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("Import Model (I)", menuDrawX + PADDING + 5.0f, currentItemY + ITEM_HEIGHT / 2 - (FONT_SIZE * 16 / 2), FONT_SIZE, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
-    currentItemY += ITEM_HEIGHT + PADDING / 2;
+    drawItem("Toggle Lighting (L)");
+    drawItem("Toggle Edges (V)");
+    drawItem("Toggle Perspective (P)");
+    drawItem("Toggle Background (B)");
+    drawItem("Toggle Axes (C)");
+    drawItem("Auto-center Model (A)");
+    drawItem("Import Model (I)");
 }
 
 void Viewer::onMouseButton(int button, int action, double xpos, double ypos)
@@ -477,48 +486,62 @@ void Viewer::onMouseButton(int button, int action, double xpos, double ypos)
         {
             m_contextMenuX = static_cast<float>(xpos);
             m_contextMenuY = static_cast<float>(ypos);
+            // DEBUG: Print original mouse click position
+            std::cout << "Original Mouse Click Pos: X=" << m_contextMenuX << ", Y=" << m_contextMenuY << std::endl;
         }
     }
     else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
     {
         if (m_showContextMenu)
         {
+            float uiScale = getUiScale();
+            float scaledMenuWidth = MENU_WIDTH * uiScale;
+            float scaledItemHeight = ITEM_HEIGHT * uiScale;
+            float scaledPadding = PADDING * uiScale;
+        
             // Check if a menu item was clicked
-            float menuHeight = (static_cast<int>(ContextMenuItem::COUNT) * ITEM_HEIGHT) + (static_cast<int>(ContextMenuItem::COUNT) - 1) * (PADDING / 2) + PADDING * 2;
-
-            float menuDrawX = m_contextMenuX;
-            float menuDrawY = m_contextMenuY;
-
-            if (menuDrawX + MENU_WIDTH + PADDING > width)
-                menuDrawX = width - MENU_WIDTH - PADDING;
-            if (menuDrawY + menuHeight + PADDING > height)
-                menuDrawY = height - menuHeight - PADDING;
-            if (menuDrawX < PADDING)
-                menuDrawX = PADDING;
-            if (menuDrawY < PADDING)
-                menuDrawY = PADDING;
-
-            // Calculate item bounds and check for clicks
-            float currentItemY = menuDrawY + PADDING;
-
-            // Function to check if a click is within an item's bounds
+            float menuHeight = (static_cast<int>(ContextMenuItem::COUNT) * scaledItemHeight) + (static_cast<int>(ContextMenuItem::COUNT) - 1) * (scaledPadding / 2) + scaledPadding * 2;
+        
+            // Use the same alignment logic as in drawContextMenu
+            float menuDrawX = m_contextMenuX - (scaledMenuWidth / 2.0f);
+            float menuDrawY = m_contextMenuY - (menuHeight / 2.0f);
+        
+            if (menuDrawX + scaledMenuWidth + scaledPadding > width)
+                menuDrawX = width - scaledMenuWidth - scaledPadding;
+            if (menuDrawY + menuHeight + scaledPadding > height)
+                menuDrawY = height - menuHeight - scaledPadding;
+            if (menuDrawX < scaledPadding)
+                menuDrawX = scaledPadding;
+            if (menuDrawY < scaledPadding)
+                menuDrawY = scaledPadding;
+        
+            // DEBUG: Print menu position during hit testing
+            std::cout << "Hit Test Menu Draw X: " << menuDrawX << ", Y: " << menuDrawY << std::endl;
+            std::cout << "Click position (xpos,ypos): " << xpos << ", " << ypos << std::endl;
+        
+            // Convert ypos to match OpenGL's bottom-left origin if necessary for hit testing
+            float clickY = static_cast<float>(height) - ypos; 
+        
+            float currentItemY = menuDrawY + scaledPadding;
+        
+            // Updated hit test function
             auto isClicked = [&](float itemY)
             {
-                float itemXMin = menuDrawX + PADDING;
-                float itemXMax = menuDrawX + MENU_WIDTH - PADDING;
+                float itemXMin = menuDrawX + scaledPadding;
+                float itemXMax = menuDrawX + scaledMenuWidth - scaledPadding;
                 float itemYMin = itemY;
-                float itemYMax = itemY + ITEM_HEIGHT;
-                return (xpos >= itemXMin && xpos <= itemXMax && ypos >= itemYMin && ypos <= itemYMax);
+                float itemYMax = itemY + scaledItemHeight;
+                return (xpos >= itemXMin && xpos <= itemXMax && clickY >= itemYMin && clickY <= itemYMax);
             };
-
-            // Item: Toggle Lighting
+        
+            // Check clicks
             if (isClicked(currentItemY))
             {
                 m_lightingEnabled = !m_lightingEnabled;
-                std::cout << "Toggle Lighting: " << (m_lightingEnabled ? "On" : "Off") << std::endl;
+                std::cout << "Toggle Lighting" << std::endl;
             }
-            currentItemY += ITEM_HEIGHT + PADDING / 2;
-
+            currentItemY += scaledItemHeight + scaledPadding / 2;
+        
             // Item: Toggle Edges
             if (isClicked(currentItemY))
             {
@@ -538,49 +561,49 @@ void Viewer::onMouseButton(int button, int action, double xpos, double ypos)
                     break;
                 }
             }
-            currentItemY += ITEM_HEIGHT + PADDING / 2;
-
+            currentItemY += scaledItemHeight + scaledPadding / 2;
+        
             // Item: Toggle Perspective
             if (isClicked(currentItemY))
             {
                 usePerspective = !usePerspective;
                 std::cout << "Toggle Perspective: " << (usePerspective ? "Perspective" : "Orthographic") << std::endl;
             }
-            currentItemY += ITEM_HEIGHT + PADDING / 2;
-
+            currentItemY += scaledItemHeight + scaledPadding / 2;
+        
             // Item: Toggle Background Theme
             if (isClicked(currentItemY))
             {
                 setBackgroundTheme(!m_isDarkTheme);
                 std::cout << "Toggle Background: " << (m_isDarkTheme ? "Dark" : "Light") << std::endl;
             }
-            currentItemY += ITEM_HEIGHT + PADDING / 2;
-
+            currentItemY += scaledItemHeight + scaledPadding / 2;
+        
             // Item: Toggle Axes Widget
             if (isClicked(currentItemY))
             {
                 m_showAxesWidget = !m_showAxesWidget;
                 std::cout << "Toggle Axes Widget Visible: " << (m_showAxesWidget ? "true" : "false") << std::endl;
             }
-            currentItemY += ITEM_HEIGHT + PADDING / 2;
-
+            currentItemY += scaledItemHeight + scaledPadding / 2;
+        
             // Item: Auto-center Model
             if (isClicked(currentItemY))
             {
                 autoCenterAndOrientModel();
                 std::cout << "Auto-centered and oriented model." << std::endl;
             }
-            currentItemY += ITEM_HEIGHT + PADDING / 2;
-
+            currentItemY += scaledItemHeight + scaledPadding / 2;
+        
             // Item: Import Model
             if (isClicked(currentItemY))
             {
                 char const *lTheOpenFileName;
                 char const *lFilterPatterns[2] = {"*.obj", "*.stl"};
-
+        
                 lTheOpenFileName = tinyfd_openFileDialog(
                     "Open 3D Model", "", 2, lFilterPatterns, "3D Model Files (*.obj, *.stl)", 0);
-
+        
                 if (lTheOpenFileName)
                 {
                     std::string filePath(lTheOpenFileName);
@@ -592,8 +615,8 @@ void Viewer::onMouseButton(int button, int action, double xpos, double ypos)
                     std::cout << "No file selected." << std::endl;
                 }
             }
-            currentItemY += ITEM_HEIGHT + PADDING / 2;
-
+            currentItemY += scaledItemHeight + scaledPadding / 2;
+        
             m_showContextMenu = false; // Dismiss menu after selection
         }
         firstMouse = true; // Reset firstMouse to avoid jump when orbiting after menu close

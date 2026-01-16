@@ -106,7 +106,7 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
     // NDC (-1 to 1) to widget space (0 to widgetSize)
     // float labelOffsetFactor = 0.9f;  // No longer needed
     float labelCircleRadius = 8.0f; // Smaller radius for the background circle
-    float fontSize = 0.30f;         // Smaller scale for the text labels
+    float fontSize = 0.3f;          // Larger scale for the text labels
 
     auto drawAxisLabel = [&](glm::vec3 axisDir, const std::string &label, glm::vec4 axisColor)
     {
