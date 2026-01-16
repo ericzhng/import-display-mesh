@@ -9,7 +9,9 @@ Viewer::Viewer(int width, int height)
     : width(width), height(height),
       camera(glm::vec3(10.0f, -10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
       usePerspective(false), firstMouse(true), lastX(width / 2.0f), lastY(height / 2.0f),
-      m_lightingEnabled(true), m_ambientStrength(0.1f) // Initialize new members
+      m_lightingEnabled(true), m_ambientStrength(0.1f), // Initialize new members
+      m_lastFrameTime(0.0f),                            // Initialize m_lastFrameTime here
+      m_currentModelPosition(0.0f, 0.0f, 0.0f)
 {
     background = std::make_unique<Background>();
     uiRenderer = std::make_unique<UiRenderer>();                                // Initialize UiRenderer
@@ -35,7 +37,30 @@ void Viewer::init()
 void Viewer::loadModel(const std::string &path)
 {
     model = std::make_unique<Model>(path.c_str());
-    autoCenterAndOrientModel();
+
+    // Setup model drop animation
+    glm::vec3 modelCenter = model->GetCenter();
+    glm::vec3 modelSize = model->GetSize();
+    float maxDim = glm::max(glm::max(modelSize.x, modelSize.y), modelSize.z);
+
+    // Calculate camera distance to fit the entire model in view (for immediate camera setup)
+    float fovRadians = glm::radians(camera.GetZoom()); // Current camera FOV
+    float distance = (maxDim / 2.0f) / glm::tan(fovRadians / 2.0f);
+    distance *= 1.5f; // Add buffer
+
+    // Immediately set camera to view the final resting position of the model
+    glm::vec3 initialCameraPosition = modelCenter + glm::vec3(0.0f, 0.0f, distance); // Default front view
+    glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f); // Assuming Y is up for the scene
+    camera.SetPositionAndTarget(initialCameraPosition, modelCenter, worldUp);
+
+
+    m_modelAnimEndPosition = modelCenter;
+    // Start significantly above the model's actual center
+    m_modelAnimStartPosition = modelCenter + glm::vec3(0.0f, maxDim * 5.0f, 0.0f); // 5 times maxDim above
+
+    m_isAnimatingModelDrop = true;
+    m_modelDropTime = 0.0f;
+    m_currentModelPosition = m_modelAnimStartPosition; // Start at the elevated position
 }
 
 void Viewer::autoCenterAndOrientModel()
@@ -44,6 +69,11 @@ void Viewer::autoCenterAndOrientModel()
     {
         return; // No model loaded, nothing to do
     }
+
+    // Store current camera state as animation start
+    m_cameraAnimStartPosition = camera.GetPosition();
+    m_cameraAnimStartTarget = camera.GetTarget();
+    m_cameraAnimStartWorldUp = camera.GetUp();
 
     glm::vec3 modelCenter = model->GetCenter();
     glm::vec3 modelSize = model->GetSize();
@@ -58,14 +88,69 @@ void Viewer::autoCenterAndOrientModel()
 
     // Position the camera to look at the model's center from an isometric view (e.g., along (1,1,1) vector)
     glm::vec3 isometricDirection = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
-    glm::vec3 cameraPosition = modelCenter + isometricDirection * distance;
-    glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f); // Assuming Y is up for the scene
+    glm::vec3 targetCameraPosition = modelCenter + isometricDirection * distance;
+    glm::vec3 targetWorldUp = glm::vec3(0.0f, 1.0f, 0.0f); // Assuming Y is up for the scene
 
-    camera.SetPositionAndTarget(cameraPosition, modelCenter, worldUp);
+    // Store target camera state as animation end
+    m_cameraAnimEndPosition = targetCameraPosition;
+    m_cameraAnimEndTarget = modelCenter;
+    m_cameraAnimEndWorldUp = targetWorldUp;
+
+    // Start animation
+    m_isAnimatingCamera = true;
+    m_animationTime = 0.0f;
 }
 
 void Viewer::render()
 {
+    // Update delta time
+    float currentFrameTime = static_cast<float>(glfwGetTime());
+    m_deltaTime = currentFrameTime - m_lastFrameTime;
+    m_lastFrameTime = currentFrameTime;
+
+    // Handle camera animation
+    if (m_isAnimatingCamera)
+    {
+        m_animationTime += m_deltaTime;
+        float t = glm::clamp(m_animationTime / m_animationDuration, 0.0f, 1.0f); // Animation progress [0, 1]
+
+        // Use smoothstep for smoother animation (optional, linear is fine too)
+        // t = t * t * (3.0f - 2.0f * t);
+
+        glm::vec3 currentPosition = glm::mix(m_cameraAnimStartPosition, m_cameraAnimEndPosition, t);
+        glm::vec3 currentTarget = glm::mix(m_cameraAnimStartTarget, m_cameraAnimEndTarget, t);
+        // For 'Up' vector, usually Slerp for quaternions or mix for vectors if they are already normalized
+        glm::vec3 currentWorldUp = glm::mix(m_cameraAnimStartWorldUp, m_cameraAnimEndWorldUp, t);
+        currentWorldUp = glm::normalize(currentWorldUp); // Ensure it stays normalized
+
+        camera.SetPositionAndTarget(currentPosition, currentTarget, currentWorldUp);
+
+        if (m_animationTime >= m_animationDuration)
+        {
+            m_isAnimatingCamera = false;
+            // Ensure camera is precisely at the end state
+            camera.SetPositionAndTarget(m_cameraAnimEndPosition, m_cameraAnimEndTarget, m_cameraAnimEndWorldUp);
+        }
+    }
+
+    // Handle model drop animation
+    if (m_isAnimatingModelDrop)
+    {
+        m_modelDropTime += m_deltaTime;
+        float t = glm::clamp(m_modelDropTime / m_modelDropDuration, 0.0f, 1.0f);
+
+        // Smoothstep for model drop (optional)
+        t = t * t * (3.0f - 2.0f * t);
+
+        m_currentModelPosition = glm::mix(m_modelAnimStartPosition, m_modelAnimEndPosition, t);
+
+        if (m_modelDropTime >= m_modelDropDuration)
+        {
+            m_isAnimatingModelDrop = false;
+            m_currentModelPosition = m_modelAnimEndPosition; // Ensure it lands precisely
+            autoCenterAndOrientModel();                      // Trigger camera centering after model drop
+        }
+    }
     // Reset Viewport for main scene
     glViewport(0, 0, width, height);
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -104,7 +189,10 @@ void Viewer::render()
         glm::mat4 view = camera.GetViewMatrix();
         mainShader->setMat4("projection", projection);
         mainShader->setMat4("view", view);
-        mainShader->setMat4("model", glm::mat4(1.0f));
+
+        // Apply model's animated position
+        glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), m_currentModelPosition - m_modelAnimEndPosition);
+        mainShader->setMat4("model", modelMatrix);
 
         // Draw Model Solid
         glEnable(GL_POLYGON_OFFSET_FILL);

@@ -59,5 +59,30 @@ private:
     float m_contextMenuX = 0.0f;
     float m_contextMenuY = 0.0f;
 
+    // Camera Animation State
+    bool m_isAnimatingCamera = false;
+    float m_animationDuration = 0.5f; // Animation duration in seconds
+    float m_animationTime = 0.0f;
+
+    glm::vec3 m_cameraAnimStartPosition;
+    glm::vec3 m_cameraAnimStartTarget;
+    glm::vec3 m_cameraAnimStartWorldUp;
+
+    glm::vec3 m_cameraAnimEndPosition;
+    glm::vec3 m_cameraAnimEndTarget;
+    glm::vec3 m_cameraAnimEndWorldUp;
+
+    // Time tracking for animation
+    float m_lastFrameTime = 0.0f;
+    float m_deltaTime = 0.0f;
+
+    // Model Drop Animation State
+    bool m_isAnimatingModelDrop = false;
+    float m_modelDropDuration = 1.0f; // Duration of the model drop animation
+    float m_modelDropTime = 0.0f;
+    glm::vec3 m_modelAnimStartPosition; // Starting position (elevated)
+    glm::vec3 m_modelAnimEndPosition;   // Ending position (actual center)
+    glm::vec3 m_currentModelPosition;   // The model's current animated position
+
     void autoCenterAndOrientModel();
 };

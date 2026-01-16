@@ -23,6 +23,8 @@ public:
 
     // Getter methods
     glm::vec3 GetPosition() const { return Position; }
+    glm::vec3 GetTarget() const { return Target; }
+    glm::vec3 GetUp() const { return Up; }
     float GetZoom() const { return Zoom; }
     float GetRadius() const { return Radius; }
 
