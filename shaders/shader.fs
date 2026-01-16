@@ -40,7 +40,7 @@ void main()
     // This setup uses specific values to mimic Blender's default studio lighting.
 
     // Ambient light provides a constant base color
-    vec3 ambient = u_ambientStrength * vec3(0.0, 0.0, 0.0); // Changed to 0.0 as per Blender's default for studio lighting
+    vec3 ambient = u_ambientStrength * objectColor.rgb; // Use objectColor for ambient light
     vec3 totalDiffuse = vec3(0.0);
     vec3 totalSpecular = vec3(0.0);
 
@@ -96,7 +96,7 @@ void main()
     vec3 result = (ambient + totalDiffuse) * objectColor.rgb + totalSpecular;
 
     // Apply tone mapping
-    result = ACESFilm(result);
+    // result = ACESFilm(result);
 
     FragColor = vec4(result, 1.0);
 }

@@ -12,11 +12,11 @@ uniform mat4 projection;
 void main()
 {
     // 1. Calculate the position of the vertex in the 3D world
-    FragPos = vec3(model * vec4(aPos, 1.0));
+    FragPos = vec3(view * model * vec4(aPos, 1.0));
     
     // 2. Calculate the Normal vector (corrected for scaling/rotation)
     //    Using the "Normal Matrix" (transpose of inverse of model) handles non-uniform scaling correctly.
-    Normal = mat3(transpose(inverse(model))) * aNormal;  
+    Normal = mat3(view) * mat3(transpose(inverse(model))) * aNormal;
 
-    gl_Position = projection * view * vec4(FragPos, 1.0);
+    gl_Position = projection * vec4(FragPos, 1.0);
 }
