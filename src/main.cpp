@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     try
     {
         std::cout << "Initializing Window..." << std::endl;
-        Window window(800, 600, "3D Viewer");
+        Window window(1000, 800, "3D Viewer");
         if (!window.init())
         {
             std::cerr << "FATAL: Window initialization failed." << std::endl;
@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
         }
 
         std::cout << "Initializing Viewer..." << std::endl;
-        Viewer viewer(800, 600);
+        Viewer viewer(1000, 800);
 
         std::cout << "Linking event handler..." << std::endl;
         window.setEventHandler(&viewer);

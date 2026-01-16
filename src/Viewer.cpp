@@ -48,7 +48,6 @@ void Viewer::setBackgroundTheme(bool isDarkTheme)
     }
 }
 
-
 void Viewer::loadModel(const std::string &path)
 {
     model = std::make_unique<Model>(path.c_str());
@@ -65,7 +64,7 @@ void Viewer::loadModel(const std::string &path)
 
     // Immediately set camera to view the final resting position of the model
     glm::vec3 initialCameraPosition = modelCenter + glm::vec3(0.0f, 0.0f, distance); // Default front view
-    glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f); // Assuming Y is up for the scene
+    glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);                                 // Assuming Y is up for the scene
     camera.SetPositionAndTarget(initialCameraPosition, modelCenter, worldUp);
 
     m_modelAnimEndPosition = modelCenter;
@@ -74,7 +73,7 @@ void Viewer::loadModel(const std::string &path)
 
     m_isAnimatingModelDrop = true;
     m_modelDropTime = 0.0f;
-    m_modelDropDuration = 2.0f; // Increase duration to 2 seconds
+    m_modelDropDuration = 2.0f;                        // Increase duration to 2 seconds
     m_currentModelPosition = m_modelAnimStartPosition; // Start at the elevated position
 }
 
@@ -168,7 +167,7 @@ void Viewer::render()
     }
     // Reset Viewport for main scene
     glViewport(0, 0, width, height);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    // glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // Removed as background is drawn by Background class
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     float aspectRatio = (float)width / (float)height;
@@ -209,23 +208,62 @@ void Viewer::render()
         glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), m_currentModelPosition - m_modelAnimEndPosition);
         mainShader->setMat4("model", modelMatrix);
 
-        // Draw Model Solid
-        glEnable(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(1.0, 1.0);
-        mainShader->setVec4("objectColor", glm::vec4(0.95f, 0.95f, 0.95f, 1.0f)); // Made more white-ish
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        model->Draw();
-        glDisable(GL_POLYGON_OFFSET_FILL);
-
-        // Draw Model Wireframe Overlay
-        if (m_show_edges)
+        switch (m_modelViewMode)
         {
-            mainShader->setBool("u_lightingEnabled", false);
-            mainShader->setVec4("objectColor", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); // Red
-            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-            model->Draw();
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        case ModelViewMode::Shaded:
+            glDisable(GL_BLEND);  // Ensure blending is off for opaque rendering
+            glDepthMask(GL_TRUE); // Ensure depth writing is on
             mainShader->setBool("u_lightingEnabled", m_lightingEnabled);
+            glPolygonOffset(1.0, 1.0);
+            glEnable(GL_POLYGON_OFFSET_FILL);
+            mainShader->setVec4("objectColor", glm::vec4(0.95f, 0.95f, 0.95f, 1.0f)); // Opaque white-ish
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            model->Draw();
+            glDisable(GL_POLYGON_OFFSET_FILL);
+            break;
+
+        case ModelViewMode::Wireframe:
+            // First, draw the solid model without writing to depth (so wireframe can be seen through it)
+            glDepthMask(GL_FALSE);                                                    // Disable depth writing for the underlying solid model
+            mainShader->setBool("u_lightingEnabled", m_lightingEnabled);              // Keep lighting for the underlying shaded part
+            mainShader->setVec4("objectColor", glm::vec4(0.95f, 0.95f, 0.95f, 0.2f)); // Semi-transparent shaded part
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            glEnable(GL_BLEND); // Enable blending for transparency
+            model->Draw();
+
+            // Then, draw the wireframe on top
+            glDepthMask(GL_TRUE);                                                  // Enable depth writing for the wireframe (so it doesn't draw over everything)
+            mainShader->setBool("u_lightingEnabled", false);                       // No lighting for wireframe
+            mainShader->setVec4("objectColor", glm::vec4(0.0f, 0.5f, 1.0f, 1.0f)); // Opaque blue wireframe on top
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glLineWidth(1.0f); // Default wireframe thickness
+            model->Draw();
+
+            glDisable(GL_BLEND);                       // Disable blending after drawing transparent objects
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // Reset polygon mode
+            break;
+
+        case ModelViewMode::ShadedWithEdges:
+            glDisable(GL_BLEND);  // Ensure blending is off for opaque rendering
+            glDepthMask(GL_TRUE); // Ensure depth writing is on
+            // Draw solid shaded model
+            mainShader->setBool("u_lightingEnabled", m_lightingEnabled);
+            glPolygonOffset(1.0, 1.0);
+            glEnable(GL_POLYGON_OFFSET_FILL);
+            mainShader->setVec4("objectColor", glm::vec4(0.95f, 0.95f, 0.95f, 1.0f)); // Opaque white-ish
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            model->Draw();
+            glDisable(GL_POLYGON_OFFSET_FILL);
+
+            // Draw wireframe overlay
+            mainShader->setBool("u_lightingEnabled", false);                       // No lighting for wireframe overlay
+            mainShader->setVec4("objectColor", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); // Red edges
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            glLineWidth(0.5f); // Thinner edges
+            model->Draw();
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);                   // Reset to fill for next draw calls
+            mainShader->setBool("u_lightingEnabled", m_lightingEnabled); // Restore lighting state
+            break;
         }
 
         // 3. Draw Axes Widget
@@ -263,8 +301,21 @@ void Viewer::onKey(int key, int action)
 
     if (key == GLFW_KEY_V && action == GLFW_PRESS)
     {
-        m_show_edges = !m_show_edges;
-        std::cout << "V key pressed. Feature Edge Enabled: " << (m_show_edges ? "true" : "false") << std::endl;
+        switch (m_modelViewMode)
+        {
+        case ModelViewMode::Shaded:
+            m_modelViewMode = ModelViewMode::Wireframe;
+            std::cout << "V key pressed. Model View Mode: Wireframe" << std::endl;
+            break;
+        case ModelViewMode::Wireframe:
+            m_modelViewMode = ModelViewMode::ShadedWithEdges;
+            std::cout << "V key pressed. Model View Mode: Shaded with Feature Edges" << std::endl;
+            break;
+        case ModelViewMode::ShadedWithEdges:
+            m_modelViewMode = ModelViewMode::Shaded;
+            std::cout << "V key pressed. Model View Mode: Shaded" << std::endl;
+            break;
+        }
     }
 
     if (key == GLFW_KEY_L && action == GLFW_PRESS)
@@ -469,8 +520,21 @@ void Viewer::onMouseButton(int button, int action, double xpos, double ypos)
             if (xpos >= item2XMin && xpos <= item2XMax &&
                 ypos >= item2YMin && ypos <= item2YMax)
             {
-                m_show_edges = !m_show_edges;
-                std::cout << "Toggle Edges: " << (m_show_edges ? "On" : "Off") << std::endl;
+                switch (m_modelViewMode)
+                {
+                case ModelViewMode::Shaded:
+                    m_modelViewMode = ModelViewMode::Wireframe;
+                    std::cout << "Toggle Edges: Wireframe" << std::endl;
+                    break;
+                case ModelViewMode::Wireframe:
+                    m_modelViewMode = ModelViewMode::ShadedWithEdges;
+                    std::cout << "Toggle Edges: Shaded with Feature Edges" << std::endl;
+                    break;
+                case ModelViewMode::ShadedWithEdges:
+                    m_modelViewMode = ModelViewMode::Shaded;
+                    std::cout << "Toggle Edges: Shaded" << std::endl;
+                    break;
+                }
             }
 
             // Item 3: Toggle Perspective

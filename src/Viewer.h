@@ -47,11 +47,18 @@ private:
     std::unique_ptr<UiRenderer> uiRenderer;     // Add UiRenderer member
     std::unique_ptr<TextRenderer> textRenderer; // Add TextRenderer member
 
+    // Enum for model view modes
+    enum class ModelViewMode {
+        Shaded,
+        Wireframe,
+        ShadedWithEdges
+    };
+
     // State
     bool usePerspective;
     float lastX, lastY;
     bool firstMouse;
-    bool m_show_edges = false;    // Added for wireframe toggling
+    ModelViewMode m_modelViewMode = ModelViewMode::Shaded; // Replaced m_show_edges
     bool m_lightingEnabled;       // New: To toggle lighting
     float m_ambientStrength;      // New: To control ambient light strength
     bool m_showAxesWidget = true; // New: To toggle axes widget visibility
