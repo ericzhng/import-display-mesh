@@ -208,32 +208,32 @@ void Viewer::drawContextMenu()
     // Item 1: Toggle Lighting
     float item1Y = menuDrawY + padding;
     uiRenderer->drawQuad(menuDrawX + padding, item1Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);           // Gray button
-    textRenderer->renderText("Toggle Lighting", menuDrawX + padding + 5.0f, item1Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f)); // White text
+    textRenderer->renderText("Toggle Lighting", menuDrawX + padding + 5.0f, item1Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection); // White text
 
     // Item 2: Toggle Edges
     float item2Y = item1Y + itemHeight + padding / 2;
     uiRenderer->drawQuad(menuDrawX + padding, item2Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("Toggle Edges", menuDrawX + padding + 5.0f, item2Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    textRenderer->renderText("Toggle Edges", menuDrawX + padding + 5.0f, item2Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
 
     // Item 3: Toggle Perspective
     float item3Y = item2Y + itemHeight + padding / 2;
     uiRenderer->drawQuad(menuDrawX + padding, item3Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("Toggle Perspective", menuDrawX + padding + 5.0f, item3Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    textRenderer->renderText("Toggle Perspective", menuDrawX + padding + 5.0f, item3Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
 
     // Item 4: Toggle Lighting (L)
     float item4Y = item3Y + itemHeight + padding / 2;
     uiRenderer->drawQuad(menuDrawX + padding, item4Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("L: Toggle Lighting", menuDrawX + padding + 5.0f, item4Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    textRenderer->renderText("L: Toggle Lighting", menuDrawX + padding + 5.0f, item4Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
 
     // Item 5: Toggle Edges (V)
     float item5Y = item4Y + itemHeight + padding / 2;
     uiRenderer->drawQuad(menuDrawX + padding, item5Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("V: Toggle Edges", menuDrawX + padding + 5.0f, item5Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    textRenderer->renderText("V: Toggle Edges", menuDrawX + padding + 5.0f, item5Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
 
     // Item 6: Toggle Perspective (P)
     float item6Y = item5Y + itemHeight + padding / 2;
     uiRenderer->drawQuad(menuDrawX + padding, item6Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("P: Toggle Perspective", menuDrawX + padding + 5.0f, item6Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    textRenderer->renderText("P: Toggle Perspective", menuDrawX + padding + 5.0f, item6Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
 }
 
 void Viewer::onMouseButton(int button, int action, double xpos, double ypos)

@@ -34,7 +34,7 @@ TextRenderer::TextRenderer(int screenWidth, int screenHeight)
     }
 
     // Load a font
-    loadFont("C:/Windows/Fonts/Arial.ttf"); // You might want to make this configurable or provide a default bundled font
+    loadFont("C:/Windows/Fonts/calibri.ttf"); // Changed to Segoe UI font
 }
 
 TextRenderer::~TextRenderer()
@@ -51,7 +51,7 @@ TextRenderer::~TextRenderer()
     }
 
     // Delete character textures
-    for (auto const& [key, val] : Characters)
+    for (auto const &[key, val] : Characters)
     {
         glDeleteTextures(1, &val.TextureID);
     }
@@ -93,8 +93,7 @@ void TextRenderer::loadFont(std::string fontPath)
             0,
             GL_RED,
             GL_UNSIGNED_BYTE,
-            face->glyph->bitmap.buffer
-        );
+            face->glyph->bitmap.buffer);
         // Set texture options
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -105,8 +104,7 @@ void TextRenderer::loadFont(std::string fontPath)
             texture,
             glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
             glm::ivec2(face->glyph->bitmap_left, face->glyph->bitmap_top),
-            static_cast<unsigned int>(face->glyph->advance.x)
-        };
+            static_cast<unsigned int>(face->glyph->advance.x)};
         Characters.insert(std::pair<char, Character>(c, character));
     }
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -115,9 +113,11 @@ void TextRenderer::loadFont(std::string fontPath)
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 }
 
-CharacterMetrics TextRenderer::getCharacterMetrics(char c, float scale) {
+CharacterMetrics TextRenderer::getCharacterMetrics(char c, float scale)
+{
     CharacterMetrics metrics = {0.0f, 0.0f, 0.0f};
-    if (Characters.find(c) != Characters.end()) {
+    if (Characters.find(c) != Characters.end())
+    {
         Character ch = Characters[c];
         metrics.width = (ch.Advance >> 6) * scale;
         metrics.height = ch.Size.y * scale;
@@ -126,7 +126,7 @@ CharacterMetrics TextRenderer::getCharacterMetrics(char c, float scale) {
     return metrics;
 }
 
-void TextRenderer::renderText(const std::string& text, float x, float y, float scale, const glm::vec4& color)
+void TextRenderer::renderText(const std::string &text, float x, float y, float scale, const glm::vec4 &color, const glm::mat4 &projection)
 {
     // Enable blending
     glEnable(GL_BLEND);
@@ -134,8 +134,6 @@ void TextRenderer::renderText(const std::string& text, float x, float y, float s
 
     textShader->use();
     textShader->setVec4("textColor", color);
-
-    glm::mat4 projection = glm::ortho(0.0f, (float)screenWidth, (float)screenHeight, 0.0f, -1.0f, 1.0f);
     textShader->setMat4("projection", projection);
 
     glActiveTexture(GL_TEXTURE0);
@@ -144,9 +142,10 @@ void TextRenderer::renderText(const std::string& text, float x, float y, float s
     // Iterate through all characters
     for (char c : text)
     {
-        if (Characters.find(c) == Characters.end()) {
-             std::cerr << "Character " << c << " not found in map." << std::endl;
-             continue;
+        if (Characters.find(c) == Characters.end())
+        {
+            std::cerr << "Character " << c << " not found in map." << std::endl;
+            continue;
         }
 
         Character ch = Characters[c];
@@ -159,14 +158,13 @@ void TextRenderer::renderText(const std::string& text, float x, float y, float s
 
         // Update VBO for each character
         float vertices[6][4] = {
-            { xpos,     ypos + h,   0.0f, 0.0f },
-            { xpos,     ypos,       0.0f, 1.0f },
-            { xpos + w, ypos,       1.0f, 1.0f },
+            {xpos, ypos + h, 0.0f, 0.0f},
+            {xpos, ypos, 0.0f, 1.0f},
+            {xpos + w, ypos, 1.0f, 1.0f},
 
-            { xpos,     ypos + h,   0.0f, 0.0f },
-            { xpos + w, ypos,       1.0f, 1.0f },
-            { xpos + w, ypos + h,   1.0f, 0.0f }
-        };
+            {xpos, ypos + h, 0.0f, 0.0f},
+            {xpos + w, ypos, 1.0f, 1.0f},
+            {xpos + w, ypos + h, 1.0f, 0.0f}};
         // Render glyph texture over quad
         glBindTexture(GL_TEXTURE_2D, ch.TextureID);
         // Update content of VBO memory

@@ -3,7 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp> // For glm::value_ptr
 
-AxesWidget::AxesWidget(int screenWidth, int screenHeight, UiRenderer* uiRenderer)
+AxesWidget::AxesWidget(int screenWidth, int screenHeight, UiRenderer *uiRenderer)
     : axesVAO(0), axesVBO(0), uiRenderer(uiRenderer)
 {
     textRenderer = std::make_unique<TextRenderer>(screenWidth, screenHeight);
@@ -104,33 +104,35 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
 
     // Convert NDC to widget-space coordinates (0 to widgetSize)
     // NDC (-1 to 1) to widget space (0 to widgetSize)
-    float labelOffsetFactor = 0.9f; // How far labels are from the center
+    float labelOffsetFactor = 0.9f;  // How far labels are from the center
     float labelCircleRadius = 15.0f; // Radius of the background circle
-    float fontSize = 0.5f; // Scale for the placeholder text
+    float fontSize = 0.6f;           // Scale for the text labels
 
-    auto drawAxisLabel = [&](glm::vec3 axisDir, const std::string& label, glm::vec4 axisColor)
+    auto drawAxisLabel = [&](glm::vec3 axisDir, const std::string &label, glm::vec4 axisColor)
     {
         glm::vec4 tipClip = widgetProjection * widgetView * glm::vec4(axisDir, 1.0f);
         glm::vec2 tipScreenNDC = glm::vec2(tipClip) / tipClip.w;
-        
+
         glm::vec2 dir2D = tipScreenNDC - centerScreenNDC;
         if (glm::length(dir2D) > 0.001f)
             dir2D = glm::normalize(dir2D);
-        
+
         // Position the label circles within the widget's screen space
         glm::vec2 labelCenterPosNDC = centerScreenNDC + dir2D * labelOffsetFactor;
-        
+
         // Convert labelCenterPosNDC (-1 to 1) to widget space (0 to widgetSize)
         float labelX = (labelCenterPosNDC.x * 0.5f + 0.5f) * widgetSize;
         float labelY = (labelCenterPosNDC.y * 0.5f + 0.5f) * widgetSize;
 
         // Draw background circle
-        if (uiRenderer) {
-            uiRenderer->drawCircle(labelX, labelY, labelCircleRadius, glm::vec4(0.2f, 0.2f, 0.2f, 0.8f), orthoProjection);
+        if (uiRenderer)
+        {
+            uiRenderer->drawCircle(labelX, labelY, labelCircleRadius, glm::vec4(0.2f, 0.2f, 0.2f, 1.0f), orthoProjection); // Opaque dark grey
         }
 
         // Draw text label
-        if (textRenderer) {
+        if (textRenderer)
+        {
             // Get actual metrics of the single character label
             CharacterMetrics charMetrics = textRenderer->getCharacterMetrics(label[0], fontSize);
             float charWidth = charMetrics.width;
@@ -140,16 +142,15 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
             // Adjust text position to be centered within the circle
             // labelX, labelY are currently center of the circle in widget-space
             float textRenderX = labelX - (charWidth * 0.5f);
-            
+
             // Calculate baseline for vertical centering:
             // labelY (center of circle) - yBearing (offset from baseline to top) + 0.5 * height (half of total glyph bitmap height)
             float textRenderY = labelY - charYBearing + (charHeight * 0.5f);
 
             // Convert textRenderX and textRenderY from widget-space to screen-space
-            textRenderX += viewportX;
-            textRenderY += viewportY;
-
-            textRenderer->renderText(label, textRenderX, textRenderY, fontSize, axisColor);
+            // textRenderX += viewportX; // REMOVED: Coordinates should be relative to widget viewport
+            // textRenderY += viewportY; // REMOVED: Coordinates should be relative to widget viewport
+            textRenderer->renderText(label, textRenderX, textRenderY, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection); // White text
         }
     };
 

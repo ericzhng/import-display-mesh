@@ -31,7 +31,7 @@ public:
     TextRenderer(int screenWidth, int screenHeight);
     ~TextRenderer();
 
-    void renderText(const std::string& text, float x, float y, float scale, const glm::vec4& color);
+    void renderText(const std::string& text, float x, float y, float scale, const glm::vec4& color, const glm::mat4& projection);
     CharacterMetrics getCharacterMetrics(char c, float scale);
 
 
