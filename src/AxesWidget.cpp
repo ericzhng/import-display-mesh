@@ -51,13 +51,13 @@ void AxesWidget::init()
 
 void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, Shader &shader, int screenWidth, int screenHeight)
 {
-    // 1. Setup Viewport for the corner widget (Top-Right)
-    int widgetSize = 120; // Size in pixels
-    int margin = 15;      // Distance from edge (Increased for more offset)
+    // 1. Setup Viewport for the corner widget (Bottom-Left)
+    int widgetSize = 120; // Size in pixels (increased to prevent clipping)
+    int margin = 5;       // Distance from edge
 
-    // Calculate top-right position
-    int viewportX = screenWidth - widgetSize - margin;
-    int viewportY = screenHeight - widgetSize - margin; // OpenGL's Y is usually bottom-up
+    // Calculate bottom-left position
+    int viewportX = margin;
+    int viewportY = margin; // OpenGL's (0,0) is bottom-left
 
     glEnable(GL_SCISSOR_TEST);
     glScissor(viewportX, viewportY, widgetSize, widgetSize);
@@ -69,27 +69,27 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
     shader.setBool("u_isAxesWidget", true); // Indicate that we are rendering the axes widget
 
     // 2. Fixed Matrices for the widget
-    glm::mat4 widgetProjection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 10.0f);
-    glm::mat4 viewRot = glm::mat4(glm::mat3(view)); // Extract rotation
-    glm::mat4 widgetView = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -3.5f)) * viewRot;
+    glm::mat4 widgetProjection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 10.0f);          // Increased FoV
+    glm::mat4 viewRot = glm::mat4(glm::mat3(view));                                                 // Extract rotation
+    glm::mat4 widgetView = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -4.0f)) * viewRot; // Moved camera further back
 
     shader.setMat4("projection", widgetProjection);
     shader.setMat4("view", widgetView);
     shader.setMat4("model", glm::mat4(1.0f));
 
     // 3. Draw 3D Arrows
-    glLineWidth(3.5f);
+    glLineWidth(2.0f); // Thinner axes lines
     glBindVertexArray(axesVAO);
 
-    shader.setVec4("objectColor", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f)); // X Axis (Red)
+    shader.setVec4("objectColor", glm::vec4(1.0f, 0.2f, 0.32f, 1.0f)); // X Axis (Red-ish)
     glDrawArrays(GL_LINES, 0, 2);
     glDrawArrays(GL_TRIANGLES, 6, 6);
 
-    shader.setVec4("objectColor", glm::vec4(0.0f, 0.8f, 0.0f, 1.0f)); // Y Axis (Green)
+    shader.setVec4("objectColor", glm::vec4(0.54f, 0.86f, 0.0f, 1.0f)); // Y Axis (Green-ish)
     glDrawArrays(GL_LINES, 2, 2);
     glDrawArrays(GL_TRIANGLES, 12, 6);
 
-    shader.setVec4("objectColor", glm::vec4(0.0f, 0.0f, 1.0f, 1.0f)); // Z Axis (Blue)
+    shader.setVec4("objectColor", glm::vec4(0.15f, 0.56f, 1.0f, 1.0f)); // Z Axis (Blue-ish)
     glDrawArrays(GL_LINES, 4, 2);
     glDrawArrays(GL_TRIANGLES, 18, 6);
 
@@ -104,9 +104,9 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
 
     // Convert NDC to widget-space coordinates (0 to widgetSize)
     // NDC (-1 to 1) to widget space (0 to widgetSize)
-    float labelOffsetFactor = 0.9f;  // How far labels are from the center
-    float labelCircleRadius = 15.0f; // Radius of the background circle
-    float fontSize = 0.6f;           // Scale for the text labels
+    // float labelOffsetFactor = 0.9f;  // No longer needed
+    float labelCircleRadius = 8.0f; // Smaller radius for the background circle
+    float fontSize = 0.30f;         // Smaller scale for the text labels
 
     auto drawAxisLabel = [&](glm::vec3 axisDir, const std::string &label, glm::vec4 axisColor)
     {
@@ -114,20 +114,27 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
         glm::vec2 tipScreenNDC = glm::vec2(tipClip) / tipClip.w;
 
         glm::vec2 dir2D = tipScreenNDC - centerScreenNDC;
-        if (glm::length(dir2D) > 0.001f)
+        float projectedLengthNDC = glm::length(dir2D);
+        if (projectedLengthNDC > 0.001f)
             dir2D = glm::normalize(dir2D);
+        else
+            dir2D = glm::vec2(0.0f); // Avoid division by zero if tip is at center
 
-        // Position the label circles within the widget's screen space
-        glm::vec2 labelCenterPosNDC = centerScreenNDC + dir2D * labelOffsetFactor;
+        // Convert tipScreenNDC to widget space.
+        float baseLabelX_widgetSpace = (tipScreenNDC.x * 0.5f + 0.5f) * widgetSize;
+        float baseLabelY_widgetSpace = (tipScreenNDC.y * 0.5f + 0.5f) * widgetSize;
 
-        // Convert labelCenterPosNDC (-1 to 1) to widget space (0 to widgetSize)
-        float labelX = (labelCenterPosNDC.x * 0.5f + 0.5f) * widgetSize;
-        float labelY = (labelCenterPosNDC.y * 0.5f + 0.5f) * widgetSize;
+        // Add a small fixed pixel offset outwards from the projected tip.
+        float pixelOffset = 4.0f; // Fixed pixel amount for offset (reduced)
+        float labelX = baseLabelX_widgetSpace + dir2D.x * pixelOffset;
+        float labelY = baseLabelY_widgetSpace + dir2D.y * pixelOffset;
 
         // Draw background circle
         if (uiRenderer)
         {
-            uiRenderer->drawCircle(labelX, labelY, labelCircleRadius, glm::vec4(0.2f, 0.2f, 0.2f, 1.0f), orthoProjection); // Opaque dark grey
+            // Use axis color for circle background, maintain translucency
+            glm::vec4 circleColor = glm::vec4(axisColor.r, axisColor.g, axisColor.b, 0.5f);
+            uiRenderer->drawCircle(labelX, labelY, labelCircleRadius, circleColor, orthoProjection);
         }
 
         // Draw text label
@@ -147,16 +154,13 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
             // labelY (center of circle) - yBearing (offset from baseline to top) + 0.5 * height (half of total glyph bitmap height)
             float textRenderY = labelY - charYBearing + (charHeight * 0.5f);
 
-            // Convert textRenderX and textRenderY from widget-space to screen-space
-            // textRenderX += viewportX; // REMOVED: Coordinates should be relative to widget viewport
-            // textRenderY += viewportY; // REMOVED: Coordinates should be relative to widget viewport
-            textRenderer->renderText(label, textRenderX, textRenderY, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection); // White text
+            textRenderer->renderText(label, textRenderX, textRenderY, fontSize, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), orthoProjection); // Black text
         }
     };
 
-    drawAxisLabel(glm::vec3(1.0f, 0.0f, 0.0f), "X", glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
-    drawAxisLabel(glm::vec3(0.0f, 1.0f, 0.0f), "Y", glm::vec4(0.0f, 0.8f, 0.0f, 1.0f));
-    drawAxisLabel(glm::vec3(0.0f, 0.0f, 1.0f), "Z", glm::vec4(0.0f, 0.0f, 1.0f, 1.0f));
+    drawAxisLabel(glm::vec3(1.0f, 0.0f, 0.0f), "X", glm::vec4(1.0f, 0.2f, 0.32f, 1.0f));  // New Red-ish
+    drawAxisLabel(glm::vec3(0.0f, 1.0f, 0.0f), "Y", glm::vec4(0.54f, 0.86f, 0.0f, 1.0f)); // New Green-ish
+    drawAxisLabel(glm::vec3(0.0f, 0.0f, 1.0f), "Z", glm::vec4(0.15f, 0.56f, 1.0f, 1.0f)); // New Blue-ish
 
     // Restore state
     glEnable(GL_DEPTH_TEST);

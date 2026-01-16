@@ -69,7 +69,7 @@ void main()
     totalSpecular += spec2 * light2SpecColor;
 
     // --- Light 3: Rim Light ---
-    vec3 light3Dir = normalize(vec3(-0.3, 0.8, -0.5));
+    vec3 light3Dir = normalize(vec3(-0.3, 1.0, -1.0));
     vec3 light3DiffColor = vec3(0.7, 0.7, 0.7) * 0.6;
     vec3 light3SpecColor = vec3(0.8, 0.8, 0.8) * 0.6;
     // Diffuse
