@@ -4,6 +4,7 @@
 #include "TextRenderer.h" // Include TextRenderer
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
+#include <tinyfiledialogs.h>
 
 Viewer::Viewer(int width, int height)
     : width(width), height(height),
@@ -53,13 +54,13 @@ void Viewer::loadModel(const std::string &path)
     glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f); // Assuming Y is up for the scene
     camera.SetPositionAndTarget(initialCameraPosition, modelCenter, worldUp);
 
-
     m_modelAnimEndPosition = modelCenter;
     // Start significantly above the model's actual center
-    m_modelAnimStartPosition = modelCenter + glm::vec3(0.0f, maxDim * 5.0f, 0.0f); // 5 times maxDim above
+    m_modelAnimStartPosition = modelCenter + glm::vec3(0.0f, maxDim * 10.0f, 0.0f); // 10 times maxDim above
 
     m_isAnimatingModelDrop = true;
     m_modelDropTime = 0.0f;
+    m_modelDropDuration = 2.0f; // Increase duration to 2 seconds
     m_currentModelPosition = m_modelAnimStartPosition; // Start at the elevated position
 }
 
@@ -268,6 +269,32 @@ void Viewer::onKey(int key, int action)
     {
         autoCenterAndOrientModel();
         std::cout << "A key pressed. Auto-centered and oriented model." << std::endl;
+    }
+
+    if (key == GLFW_KEY_I && action == GLFW_PRESS) // New: Open file dialog to import model
+    {
+        char const *lTheOpenFileName;
+        char const *lFilterPatterns[2] = {"*.obj", "*.stl"}; // Filter for .obj and .stl files
+
+        lTheOpenFileName = tinyfd_openFileDialog(
+            "Open 3D Model",
+            "", // Default path: empty, opens in current directory or last used
+            2,  // Number of filter patterns
+            lFilterPatterns,
+            "3D Model Files (*.obj, *.stl)",
+            0 // Allow multiple selections: 0 for single, 1 for multiple
+        );
+
+        if (lTheOpenFileName) // If a file was selected
+        {
+            std::string filePath(lTheOpenFileName);
+            loadModel(filePath); // Load the selected model
+            std::cout << "I key pressed. Loaded model: " << filePath << std::endl;
+        }
+        else
+        {
+            std::cout << "I key pressed. No file selected." << std::endl;
+        }
     }
 }
 

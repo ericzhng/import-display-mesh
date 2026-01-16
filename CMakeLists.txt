@@ -32,16 +32,19 @@ file(GLOB_RECURSE HEADERS "src/*.h")
 
 # --- Executable Target ---
 set_source_files_properties(vendor/glad/src/glad.c PROPERTIES LANGUAGE C)
+set_source_files_properties(vendor/tinyfiledialogs/tinyfiledialogs.c PROPERTIES LANGUAGE C)
 add_executable(MeshViewer 
     ${SOURCES}
     src/UiRenderer.cpp
     src/TextRenderer.cpp # Explicitly add TextRenderer.cpp
     vendor/glad/src/glad.c
+    vendor/tinyfiledialogs/tinyfiledialogs.c
 )
 
 target_include_directories(MeshViewer PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${CMAKE_CURRENT_SOURCE_DIR}/vendor/glad/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/vendor/tinyfiledialogs"
     ${ASSIMP_INCLUDE_DIRS}
 )
 
@@ -50,6 +53,9 @@ target_link_libraries(MeshViewer PRIVATE
     glm::glm
     assimp::assimp
     Freetype::Freetype
+    Comdlg32
+    Shell32
+    User32
 )
 add_custom_command(TARGET MeshViewer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
