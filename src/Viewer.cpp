@@ -100,7 +100,7 @@ void Viewer::render()
         }
 
         // 3. Draw Axes Widget
-        if (axesWidget)
+        if (axesWidget && m_showAxesWidget)
         {
             axesWidget->Draw(view, projection, *mainShader, width, height); // Pass screen width and height
         }
@@ -136,6 +136,12 @@ void Viewer::onKey(int key, int action)
     {
         m_lightingEnabled = !m_lightingEnabled; // Toggle lighting with 'L' key
         std::cout << "L key pressed. Lighting Enabled: " << (m_lightingEnabled ? "true" : "false") << std::endl;
+    }
+
+    if (key == GLFW_KEY_C && action == GLFW_PRESS)
+    {
+        m_showAxesWidget = !m_showAxesWidget;
+        std::cout << "C key pressed. Axes Widget Visible: " << (m_showAxesWidget ? "true" : "false") << std::endl;
     }
 }
 

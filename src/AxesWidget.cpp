@@ -53,7 +53,7 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
 {
     // 1. Setup Viewport for the corner widget (Top-Right)
     int widgetSize = 120; // Size in pixels
-    int margin = 10;      // Distance from edge
+    int margin = 15;      // Distance from edge (Increased for more offset)
 
     // Calculate top-right position
     int viewportX = screenWidth - widgetSize - margin;

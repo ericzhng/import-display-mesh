@@ -52,6 +52,7 @@ private:
     bool m_show_edges = false; // Added for wireframe toggling
     bool m_lightingEnabled;    // New: To toggle lighting
     float m_ambientStrength;   // New: To control ambient light strength
+    bool m_showAxesWidget = true; // New: To toggle axes widget visibility
 
     // Context menu state
     bool m_showContextMenu = false;
