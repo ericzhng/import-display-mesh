@@ -132,8 +132,8 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
         // Draw background circle
         if (uiRenderer)
         {
-            // Use axis color for circle background, maintain translucency
-            glm::vec4 circleColor = glm::vec4(axisColor.r, axisColor.g, axisColor.b, 0.5f);
+            // Use axis color for circle background, pass opaque alpha, translucency handled in shader
+            glm::vec4 circleColor = glm::vec4(axisColor.r, axisColor.g, axisColor.b, 1.0f); // Pass opaque color
             uiRenderer->drawCircle(labelX, labelY, labelCircleRadius, circleColor, orthoProjection);
         }
 

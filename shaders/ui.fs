@@ -14,15 +14,16 @@ void main()
         float distance_from_center = distance(vs_quad_pos, vec2(0.5, 0.5));
         float radius = 0.5;
 
-        // Simple anti-aliasing for the circle edge
-        float alpha = 1.0 - smoothstep(radius - 0.005, radius + 0.005, distance_from_center);
+        // Dynamic anti-aliasing for the circle edge using fwidth
+        float f_width = fwidth(distance_from_center);
+        float alpha = 1.0 - smoothstep(radius - f_width, radius, distance_from_center);
         
         // Discard fragments outside the circle
         if (alpha < 0.01) // Adjust threshold for discarding
         {
             discard;
         }
-        FragColor = uColor * alpha; // Apply anti-aliasing to color
+        FragColor = vec4(uColor.rgb, uColor.a * alpha); // Apply anti-aliasing to color's alpha
     }
     else
     {
