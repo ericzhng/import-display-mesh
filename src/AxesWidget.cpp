@@ -131,10 +131,25 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
 
         // Draw text label
         if (textRenderer) {
+            // Get actual metrics of the single character label
+            CharacterMetrics charMetrics = textRenderer->getCharacterMetrics(label[0], fontSize);
+            float charWidth = charMetrics.width;
+            float charHeight = charMetrics.height;
+            float charYBearing = charMetrics.yBearing;
+
             // Adjust text position to be centered within the circle
-            float textOffsetX = (label.length() * fontSize * 10.0f) * 0.5f; // Rough estimation for centering
-            float textOffsetY = (fontSize * 10.0f) * 0.5f; // Rough estimation for centering
-            textRenderer->renderText(label, labelX - textOffsetX, labelY + textOffsetY, fontSize, axisColor);
+            // labelX, labelY are currently center of the circle in widget-space
+            float textRenderX = labelX - (charWidth * 0.5f);
+            
+            // Calculate baseline for vertical centering:
+            // labelY (center of circle) - yBearing (offset from baseline to top) + 0.5 * height (half of total glyph bitmap height)
+            float textRenderY = labelY - charYBearing + (charHeight * 0.5f);
+
+            // Convert textRenderX and textRenderY from widget-space to screen-space
+            textRenderX += viewportX;
+            textRenderY += viewportY;
+
+            textRenderer->renderText(label, textRenderX, textRenderY, fontSize, axisColor);
         }
     };
 

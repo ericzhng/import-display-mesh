@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(glfw3 REQUIRED)
 find_package(assimp REQUIRED)
+find_package(Freetype REQUIRED)
 
 # Add GLM from the vendor directory. This creates the 'glm' target.
 add_subdirectory(vendor/glm)
@@ -45,11 +46,11 @@ target_include_directories(MeshViewer PRIVATE
 )
 
 target_link_libraries(MeshViewer PRIVATE
-    glfw 
-    glm::glm 
+    glfw
+    glm::glm
     assimp::assimp
+    Freetype::Freetype
 )
-
 add_custom_command(TARGET MeshViewer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_SOURCE_DIR}/shaders"
