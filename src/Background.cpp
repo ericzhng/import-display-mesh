@@ -21,10 +21,16 @@ void Background::Draw()
     {
         glDisable(GL_DEPTH_TEST);
         bgShader->use();
+        bgShader->setBool("isDarkTheme", m_isDarkTheme); // Pass theme state to shader
         glBindVertexArray(quadVAO);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glEnable(GL_DEPTH_TEST);
     }
+}
+
+void Background::setDarkTheme(bool isDarkTheme)
+{
+    m_isDarkTheme = isDarkTheme;
 }
 
 void Background::initBackground()

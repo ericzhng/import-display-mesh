@@ -12,7 +12,8 @@ Viewer::Viewer(int width, int height)
       usePerspective(false), firstMouse(true), lastX(width / 2.0f), lastY(height / 2.0f),
       m_lightingEnabled(true), m_ambientStrength(0.1f), // Initialize new members
       m_lastFrameTime(0.0f),                            // Initialize m_lastFrameTime here
-      m_currentModelPosition(0.0f, 0.0f, 0.0f)
+      m_currentModelPosition(0.0f, 0.0f, 0.0f),
+      m_isDarkTheme(false) // Initialize m_isDarkTheme
 {
     background = std::make_unique<Background>();
     uiRenderer = std::make_unique<UiRenderer>();                                // Initialize UiRenderer
@@ -33,7 +34,20 @@ void Viewer::init()
 
     // Assume shaders are relative to CWD
     mainShader = std::make_unique<Shader>("shaders/shader.vs", "shaders/shader.fs");
+
+    // Set initial background theme
+    setBackgroundTheme(m_isDarkTheme);
 }
+
+void Viewer::setBackgroundTheme(bool isDarkTheme)
+{
+    m_isDarkTheme = isDarkTheme;
+    if (background)
+    {
+        background->setDarkTheme(m_isDarkTheme);
+    }
+}
+
 
 void Viewer::loadModel(const std::string &path)
 {
@@ -269,6 +283,12 @@ void Viewer::onKey(int key, int action)
     {
         autoCenterAndOrientModel();
         std::cout << "A key pressed. Auto-centered and oriented model." << std::endl;
+    }
+
+    if (key == GLFW_KEY_B && action == GLFW_PRESS) // New: Toggle background theme with 'B' key
+    {
+        setBackgroundTheme(!m_isDarkTheme);
+        std::cout << "B key pressed. Dark theme enabled: " << (m_isDarkTheme ? "true" : "false") << std::endl;
     }
 
     if (key == GLFW_KEY_I && action == GLFW_PRESS) // New: Open file dialog to import model

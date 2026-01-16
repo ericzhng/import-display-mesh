@@ -11,10 +11,12 @@ public:
     ~Background();
 
     void Draw();
+    void setDarkTheme(bool isDarkTheme);
 
 private:
     std::unique_ptr<Shader> bgShader;
     unsigned int quadVAO, quadVBO;
+    bool m_isDarkTheme = false; // Add this member
 
     void initBackground();
 };

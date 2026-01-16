@@ -33,10 +33,12 @@ public:
     void onMouseButton(int button, int action, double xpos, double ypos) override;
     void drawContextMenu();
     void setPerspective(bool enable) { usePerspective = enable; }
+    void setBackgroundTheme(bool isDarkTheme);
 
 private:
     int width, height;
     Camera camera;
+    bool m_isDarkTheme = false;
 
     std::unique_ptr<Shader> mainShader;
     std::unique_ptr<Model> model;
