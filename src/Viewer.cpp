@@ -408,62 +408,64 @@ void Viewer::drawContextMenu()
         return;
 
     // Set up orthographic projection for 2D UI
-    // glm::ortho(left, right, bottom, top, near, far)
     glm::mat4 orthoProjection = glm::ortho(0.0f, (float)width, (float)height, 0.0f, -1.0f, 1.0f);
 
-    // Menu properties
-    float menuWidth = 200.0f;
-    float menuHeight = 195.0f;
-    float padding = 10.0f;
-    float itemHeight = 25.0f;
-    float fontSize = 0.5f;
+    // Calculate menu height based on the number of items and their spacing
+    float menuHeight = (static_cast<int>(ContextMenuItem::COUNT) * ITEM_HEIGHT) + (static_cast<int>(ContextMenuItem::COUNT) - 1) * (PADDING / 2) + PADDING * 2;
 
     // Apply boundary checks to keep the menu within screen
     float menuDrawX = m_contextMenuX;
     float menuDrawY = m_contextMenuY;
 
-    if (menuDrawX + menuWidth + padding > width)
-        menuDrawX = width - menuWidth - padding;
-    if (menuDrawY + menuHeight + padding > height)
-        menuDrawY = height - menuHeight - padding;
-    if (menuDrawX < padding)
-        menuDrawX = padding;
-    if (menuDrawY < padding)
-        menuDrawY = padding;
+    if (menuDrawX + MENU_WIDTH + PADDING > width)
+        menuDrawX = width - MENU_WIDTH - PADDING;
+    if (menuDrawY + menuHeight + PADDING > height)
+        menuDrawY = height - menuHeight - PADDING;
+    if (menuDrawX < PADDING)
+        menuDrawX = PADDING;
+    if (menuDrawY < PADDING)
+        menuDrawY = PADDING;
 
     // Menu background
-    uiRenderer->drawQuad(menuDrawX, menuDrawY, menuWidth, menuHeight, glm::vec4(0.2f, 0.2f, 0.2f, 0.8f), orthoProjection); // Dark gray, semi-transparent
+    uiRenderer->drawQuad(menuDrawX, menuDrawY, MENU_WIDTH, menuHeight, glm::vec4(0.2f, 0.2f, 0.2f, 0.8f), orthoProjection); // Dark gray, semi-transparent
 
     // Menu items
-    // Item 1: Toggle Lighting
-    float item1Y = menuDrawY + padding;
-    uiRenderer->drawQuad(menuDrawX + padding, item1Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);                            // Gray button
-    textRenderer->renderText("Toggle Lighting", menuDrawX + padding + 5.0f, item1Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection); // White text
+    float currentItemY = menuDrawY + PADDING;
 
-    // Item 2: Toggle Edges
-    float item2Y = item1Y + itemHeight + padding / 2;
-    uiRenderer->drawQuad(menuDrawX + padding, item2Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("Toggle Edges", menuDrawX + padding + 5.0f, item2Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
+    // Item: Toggle Lighting
+    uiRenderer->drawQuad(menuDrawX + PADDING, currentItemY, MENU_WIDTH - 2 * PADDING, ITEM_HEIGHT, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
+    textRenderer->renderText("Toggle Lighting (L)", menuDrawX + PADDING + 5.0f, currentItemY + ITEM_HEIGHT / 2 - (FONT_SIZE * 16 / 2), FONT_SIZE, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
+    currentItemY += ITEM_HEIGHT + PADDING / 2;
 
-    // Item 3: Toggle Perspective
-    float item3Y = item2Y + itemHeight + padding / 2;
-    uiRenderer->drawQuad(menuDrawX + padding, item3Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("Toggle Perspective", menuDrawX + padding + 5.0f, item3Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
+    // Item: Toggle Edges
+    uiRenderer->drawQuad(menuDrawX + PADDING, currentItemY, MENU_WIDTH - 2 * PADDING, ITEM_HEIGHT, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
+    textRenderer->renderText("Toggle Edges (V)", menuDrawX + PADDING + 5.0f, currentItemY + ITEM_HEIGHT / 2 - (FONT_SIZE * 16 / 2), FONT_SIZE, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
+    currentItemY += ITEM_HEIGHT + PADDING / 2;
 
-    // Item 4: Toggle Lighting (L)
-    float item4Y = item3Y + itemHeight + padding / 2;
-    uiRenderer->drawQuad(menuDrawX + padding, item4Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("L: Toggle Lighting", menuDrawX + padding + 5.0f, item4Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
+    // Item: Toggle Perspective
+    uiRenderer->drawQuad(menuDrawX + PADDING, currentItemY, MENU_WIDTH - 2 * PADDING, ITEM_HEIGHT, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
+    textRenderer->renderText("Toggle Perspective (P)", menuDrawX + PADDING + 5.0f, currentItemY + ITEM_HEIGHT / 2 - (FONT_SIZE * 16 / 2), FONT_SIZE, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
+    currentItemY += ITEM_HEIGHT + PADDING / 2;
 
-    // Item 5: Toggle Edges (V)
-    float item5Y = item4Y + itemHeight + padding / 2;
-    uiRenderer->drawQuad(menuDrawX + padding, item5Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("V: Toggle Edges", menuDrawX + padding + 5.0f, item5Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
+    // Item: Toggle Background Theme
+    uiRenderer->drawQuad(menuDrawX + PADDING, currentItemY, MENU_WIDTH - 2 * PADDING, ITEM_HEIGHT, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
+    textRenderer->renderText("Toggle Background (B)", menuDrawX + PADDING + 5.0f, currentItemY + ITEM_HEIGHT / 2 - (FONT_SIZE * 16 / 2), FONT_SIZE, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
+    currentItemY += ITEM_HEIGHT + PADDING / 2;
 
-    // Item 6: Toggle Perspective (P)
-    float item6Y = item5Y + itemHeight + padding / 2;
-    uiRenderer->drawQuad(menuDrawX + padding, item6Y, menuWidth - 2 * padding, itemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-    textRenderer->renderText("P: Toggle Perspective", menuDrawX + padding + 5.0f, item6Y + itemHeight / 2 - 8.0f, fontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
+    // Item: Toggle Axes Widget
+    uiRenderer->drawQuad(menuDrawX + PADDING, currentItemY, MENU_WIDTH - 2 * PADDING, ITEM_HEIGHT, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
+    textRenderer->renderText("Toggle Axes (C)", menuDrawX + PADDING + 5.0f, currentItemY + ITEM_HEIGHT / 2 - (FONT_SIZE * 16 / 2), FONT_SIZE, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
+    currentItemY += ITEM_HEIGHT + PADDING / 2;
+
+    // Item: Auto-center Model
+    uiRenderer->drawQuad(menuDrawX + PADDING, currentItemY, MENU_WIDTH - 2 * PADDING, ITEM_HEIGHT, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
+    textRenderer->renderText("Auto-center Model (A)", menuDrawX + PADDING + 5.0f, currentItemY + ITEM_HEIGHT / 2 - (FONT_SIZE * 16 / 2), FONT_SIZE, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
+    currentItemY += ITEM_HEIGHT + PADDING / 2;
+
+    // Item: Import Model
+    uiRenderer->drawQuad(menuDrawX + PADDING, currentItemY, MENU_WIDTH - 2 * PADDING, ITEM_HEIGHT, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
+    textRenderer->renderText("Import Model (I)", menuDrawX + PADDING + 5.0f, currentItemY + ITEM_HEIGHT / 2 - (FONT_SIZE * 16 / 2), FONT_SIZE, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
+    currentItemY += ITEM_HEIGHT + PADDING / 2;
 }
 
 void Viewer::onMouseButton(int button, int action, double xpos, double ypos)
@@ -482,43 +484,43 @@ void Viewer::onMouseButton(int button, int action, double xpos, double ypos)
         if (m_showContextMenu)
         {
             // Check if a menu item was clicked
-            float menuWidth = 200.0f;
-            float menuHeight = 195.0f;
-            float padding = 10.0f;
-            float itemHeight = 25.0f;
+            float menuHeight = (static_cast<int>(ContextMenuItem::COUNT) * ITEM_HEIGHT) + (static_cast<int>(ContextMenuItem::COUNT) - 1) * (PADDING / 2) + PADDING * 2;
 
             float menuDrawX = m_contextMenuX;
             float menuDrawY = m_contextMenuY;
 
-            if (menuDrawX + menuWidth + padding > width)
-                menuDrawX = width - menuWidth - padding;
-            if (menuDrawY + menuHeight + padding > height)
-                menuDrawY = height - menuHeight - padding;
-            if (menuDrawX < padding)
-                menuDrawX = padding;
-            if (menuDrawY < padding)
-                menuDrawY = padding;
+            if (menuDrawX + MENU_WIDTH + PADDING > width)
+                menuDrawX = width - MENU_WIDTH - PADDING;
+            if (menuDrawY + menuHeight + PADDING > height)
+                menuDrawY = height - menuHeight - PADDING;
+            if (menuDrawX < PADDING)
+                menuDrawX = PADDING;
+            if (menuDrawY < PADDING)
+                menuDrawY = PADDING;
 
-            // Item 1: Toggle Lighting
-            float item1XMin = menuDrawX + padding;
-            float item1XMax = menuDrawX + menuWidth - padding;
-            float item1YMin = menuDrawY + padding;
-            float item1YMax = item1YMin + itemHeight;
+            // Calculate item bounds and check for clicks
+            float currentItemY = menuDrawY + PADDING;
 
-            if (xpos >= item1XMin && xpos <= item1XMax &&
-                ypos >= item1YMin && ypos <= item1YMax)
+            // Function to check if a click is within an item's bounds
+            auto isClicked = [&](float itemY)
+            {
+                float itemXMin = menuDrawX + PADDING;
+                float itemXMax = menuDrawX + MENU_WIDTH - PADDING;
+                float itemYMin = itemY;
+                float itemYMax = itemY + ITEM_HEIGHT;
+                return (xpos >= itemXMin && xpos <= itemXMax && ypos >= itemYMin && ypos <= itemYMax);
+            };
+
+            // Item: Toggle Lighting
+            if (isClicked(currentItemY))
             {
                 m_lightingEnabled = !m_lightingEnabled;
                 std::cout << "Toggle Lighting: " << (m_lightingEnabled ? "On" : "Off") << std::endl;
             }
-            // Item 2: Toggle Edges
-            float item2XMin = menuDrawX + padding;
-            float item2XMax = menuDrawX + menuWidth - padding;
-            float item2YMin = item1YMax + padding / 2;
-            float item2YMax = item2YMin + itemHeight;
+            currentItemY += ITEM_HEIGHT + PADDING / 2;
 
-            if (xpos >= item2XMin && xpos <= item2XMax &&
-                ypos >= item2YMin && ypos <= item2YMax)
+            // Item: Toggle Edges
+            if (isClicked(currentItemY))
             {
                 switch (m_modelViewMode)
                 {
@@ -536,19 +538,61 @@ void Viewer::onMouseButton(int button, int action, double xpos, double ypos)
                     break;
                 }
             }
+            currentItemY += ITEM_HEIGHT + PADDING / 2;
 
-            // Item 3: Toggle Perspective
-            float item3XMin = menuDrawX + padding;
-            float item3XMax = menuDrawX + menuWidth - padding;
-            float item3YMin = item2YMax + padding / 2;
-            float item3YMax = item3YMin + itemHeight;
-
-            if (xpos >= item3XMin && xpos <= item3XMax &&
-                ypos >= item3YMin && ypos <= item3YMax)
+            // Item: Toggle Perspective
+            if (isClicked(currentItemY))
             {
                 usePerspective = !usePerspective;
                 std::cout << "Toggle Perspective: " << (usePerspective ? "Perspective" : "Orthographic") << std::endl;
             }
+            currentItemY += ITEM_HEIGHT + PADDING / 2;
+
+            // Item: Toggle Background Theme
+            if (isClicked(currentItemY))
+            {
+                setBackgroundTheme(!m_isDarkTheme);
+                std::cout << "Toggle Background: " << (m_isDarkTheme ? "Dark" : "Light") << std::endl;
+            }
+            currentItemY += ITEM_HEIGHT + PADDING / 2;
+
+            // Item: Toggle Axes Widget
+            if (isClicked(currentItemY))
+            {
+                m_showAxesWidget = !m_showAxesWidget;
+                std::cout << "Toggle Axes Widget Visible: " << (m_showAxesWidget ? "true" : "false") << std::endl;
+            }
+            currentItemY += ITEM_HEIGHT + PADDING / 2;
+
+            // Item: Auto-center Model
+            if (isClicked(currentItemY))
+            {
+                autoCenterAndOrientModel();
+                std::cout << "Auto-centered and oriented model." << std::endl;
+            }
+            currentItemY += ITEM_HEIGHT + PADDING / 2;
+
+            // Item: Import Model
+            if (isClicked(currentItemY))
+            {
+                char const *lTheOpenFileName;
+                char const *lFilterPatterns[2] = {"*.obj", "*.stl"};
+
+                lTheOpenFileName = tinyfd_openFileDialog(
+                    "Open 3D Model", "", 2, lFilterPatterns, "3D Model Files (*.obj, *.stl)", 0);
+
+                if (lTheOpenFileName)
+                {
+                    std::string filePath(lTheOpenFileName);
+                    loadModel(filePath);
+                    std::cout << "Loaded model: " << filePath << std::endl;
+                }
+                else
+                {
+                    std::cout << "No file selected." << std::endl;
+                }
+            }
+            currentItemY += ITEM_HEIGHT + PADDING / 2;
 
             m_showContextMenu = false; // Dismiss menu after selection
         }

@@ -48,7 +48,8 @@ private:
     std::unique_ptr<TextRenderer> textRenderer; // Add TextRenderer member
 
     // Enum for model view modes
-    enum class ModelViewMode {
+    enum class ModelViewMode
+    {
         Shaded,
         Wireframe,
         ShadedWithEdges
@@ -59,14 +60,32 @@ private:
     float lastX, lastY;
     bool firstMouse;
     ModelViewMode m_modelViewMode = ModelViewMode::Shaded; // Replaced m_show_edges
-    bool m_lightingEnabled;       // New: To toggle lighting
-    float m_ambientStrength;      // New: To control ambient light strength
-    bool m_showAxesWidget = true; // New: To toggle axes widget visibility
+    bool m_lightingEnabled;                                // New: To toggle lighting
+    float m_ambientStrength;                               // New: To control ambient light strength
+    bool m_showAxesWidget = true;                          // New: To toggle axes widget visibility
 
     // Context menu state
     bool m_showContextMenu = false;
     float m_contextMenuX = 0.0f;
     float m_contextMenuY = 0.0f;
+
+    // Context menu properties (centralized constants)
+    const float MENU_WIDTH = 280.0f;
+    const float ITEM_HEIGHT = 35.0f;
+    const float PADDING = 10.0f;
+    const float FONT_SIZE = 1.0f;
+
+    enum class ContextMenuItem
+    {
+        ToggleLighting,
+        ToggleEdges,
+        TogglePerspective,
+        ToggleBackgroundTheme,
+        ToggleAxesWidget,
+        AutoCenterModel,
+        ImportModel,
+        COUNT // Keep track of the number of items
+    };
 
     // Camera Animation State
     bool m_isAnimatingCamera = false;
