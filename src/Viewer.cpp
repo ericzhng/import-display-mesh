@@ -173,7 +173,15 @@ void Viewer::render()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Determine the aspect ratio to use
-    float currentAspectRatio = m_customAspectRatio;
+    float currentAspectRatio;
+    if (m_useCustomAspectRatio)
+    {
+        currentAspectRatio = m_customAspectRatio;
+    }
+    else
+    {
+        currentAspectRatio = static_cast<float>(width) / height;
+    }
 
     // 1. Draw Background
     if (background)
@@ -377,11 +385,7 @@ void Viewer::render()
         // 5. ImGui: Debug Window
         if (m_showDebugWindow)
         {
-            if (m_cameraDebugWindowFirstOpen)
-            {
-                ImGui::SetNextWindowPos(ImGui::GetWindowViewport()->Pos, ImGuiCond_FirstUseEver); // Top-left of the application window
-                m_cameraDebugWindowFirstOpen = false;
-            }
+            ImGui::SetNextWindowPos(ImGui::GetWindowViewport()->Pos, ImGuiCond_Always); // Top-left of the application window
             ImGui::Begin("Camera Debug Info", &m_showDebugWindow);
             ImGui::Text("Position: (%.2f, %.2f, %.2f)", camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
             ImGui::Text("Target:   (%.2f, %.2f, %.2f)", camera.GetTarget().x, camera.GetTarget().y, camera.GetTarget().z);
@@ -397,13 +401,9 @@ void Viewer::render()
         if (m_showCameraWindow)
         {
             // Position top-right of the application window's viewport
-            if (m_cameraControlWindowFirstOpen)
-            {
-                float posX = ImGui::GetWindowViewport()->Pos.x + ImGui::GetWindowViewport()->Size.x;
-                ImGui::SetNextWindowPos(ImVec2(posX, ImGui::GetWindowViewport()->Pos.y), ImGuiCond_FirstUseEver, ImVec2(1, 0));
-                ImGui::SetNextWindowSize(ImVec2(350, 0), ImGuiCond_FirstUseEver); // Make it wider
-                m_cameraControlWindowFirstOpen = false;
-            }
+            float posX = ImGui::GetWindowViewport()->Pos.x + ImGui::GetWindowViewport()->Size.x;
+            ImGui::SetNextWindowPos(ImVec2(posX, ImGui::GetWindowViewport()->Pos.y), ImGuiCond_Always, ImVec2(1, 0));
+            ImGui::SetNextWindowSize(ImVec2(350, 0), ImGuiCond_FirstUseEver); // Still allow size to be remembered
             ImGui::Begin("Camera Control", &m_showCameraWindow);
 
             float currentFov = camera.GetZoom();
@@ -460,15 +460,36 @@ void Viewer::render()
 
             ImGui::Separator();
 
-            // Aspect Ratio
+            // Toggle for Custom Aspect Ratio
+            bool prevUseCustomAspectRatio = m_useCustomAspectRatio;
+            ImGui::Checkbox("Use Custom Aspect Ratio", &m_useCustomAspectRatio);
+            if (!prevUseCustomAspectRatio && m_useCustomAspectRatio)
+            {
+                // If custom AR was just enabled, set m_customAspectRatio to the current window AR
+                m_customAspectRatio = m_lastWindowAspectRatio;
+            }
+
+            // Aspect Ratio slider, only editable when m_useCustomAspectRatio is true
+            float currentSliderAspectRatio = m_customAspectRatio;
+            if (!m_useCustomAspectRatio)
+            {
+                currentSliderAspectRatio = m_lastWindowAspectRatio;
+            }
+
+            ImGui::BeginDisabled(!m_useCustomAspectRatio); // Disable slider if not using custom AR
             ImGui::AlignTextToFramePadding();
             ImGui::Text("Aspect Ratio");
             ImGui::SameLine();
             itemWidth = ImGui::GetContentRegionAvail().x;
             ImGui::PushItemWidth(itemWidth);
-            ImGui::SliderFloat("##CustomAspectRatio", &m_customAspectRatio, 0.2f, 2.0f, "%.2f");
+            if (ImGui::SliderFloat("##CustomAspectRatio", &currentSliderAspectRatio, 0.2f, 3.0f, "%.2f"))
+            {
+                // Only update m_customAspectRatio if the slider is enabled (i.e., m_useCustomAspectRatio is true)
+                m_customAspectRatio = currentSliderAspectRatio;
+            }
             ImGui::PopItemWidth();
             m_customAspectRatio = glm::max(0.01f, m_customAspectRatio); // Ensure aspect ratio is not too small
+            ImGui::EndDisabled(); // End disable block
 
             if (ImGui::Button("Reset View"))
             {
@@ -484,6 +505,8 @@ void Viewer::onResize(int w, int h)
 {
     width = w;
     height = h;
+
+    m_lastWindowAspectRatio = static_cast<float>(width) / height;
     // Update TextRenderer and AxesWidget with new screen dimensions
     // Re-initialize unique_ptrs to recreate objects with new dimensions
     textRenderer = std::make_unique<TextRenderer>(width, height);

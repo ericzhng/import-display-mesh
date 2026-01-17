@@ -102,6 +102,8 @@ private:
     float m_sensorHeight = 24.0f; // Assuming 35mm full-frame equivalent sensor height
 
     float m_customAspectRatio = 16.0f / 9.0f;
+    bool m_useCustomAspectRatio = false; // Re-added: Flag to use custom aspect ratio
+    float m_lastWindowAspectRatio = 16.0f / 9.0f; // New: Stores the last calculated window aspect ratio
 
 
     void autoCenterAndOrientModel();

@@ -51,6 +51,10 @@ void AxesWidget::init()
 
 void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, Shader &shader, int screenWidth, int screenHeight)
 {
+    // Save current viewport
+    GLint originalViewport[4];
+    glGetIntegerv(GL_VIEWPORT, originalViewport);
+
     // 1. Setup Viewport for the corner widget (Bottom-Left)
     int widgetSize = 120; // Size in pixels (increased to prevent clipping)
     int margin = 5;       // Distance from edge
@@ -168,4 +172,7 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
     glBindVertexArray(0);
 
     shader.setBool("u_isAxesWidget", false); // Reset for subsequent drawing
+
+    // Restore original viewport
+    glViewport(originalViewport[0], originalViewport[1], originalViewport[2], originalViewport[3]);
 }
