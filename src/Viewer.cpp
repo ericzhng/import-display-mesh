@@ -39,6 +39,10 @@ void Viewer::init()
 
     // Set initial background theme
     setBackgroundTheme(m_isDarkTheme);
+
+    // Initialize grid shader
+    m_gridShader = std::make_unique<Shader>("shaders/grid.vs", "shaders/grid.fs");
+    setupGrid(); // Initial setup of the grid
 }
 
 void Viewer::setBackgroundTheme(bool isDarkTheme)
@@ -74,6 +78,10 @@ void Viewer::loadModel(const std::string &path)
 
     m_currentModelPosition = m_modelAnimEndPosition; // Start at the elevated position
     autoCenterAndOrientModel();
+
+    // Adjust grid size based on model's max dimension
+    m_gridExtent = static_cast<int>(maxDim * 5.0f / m_gridSpacing) + 1;
+    setupGrid();
 }
 
 void Viewer::autoCenterAndOrientModel()
@@ -146,7 +154,6 @@ void Viewer::render()
         }
     }
 
-
     // Reset Viewport for main scene
     glViewport(0, 0, width, height);
     // glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // Removed as background is drawn by Background class
@@ -168,6 +175,9 @@ void Viewer::render()
     {
         background->Draw();
     }
+
+    // 2. Draw Grid
+    drawGrid();
 
     // 2. Draw Model
     if (model && mainShader)
@@ -330,6 +340,10 @@ void Viewer::render()
             {
                 m_showAxesWidget = !m_showAxesWidget;
             }
+            if (ImGui::MenuItem("Toggle Grid", nullptr, m_showGrid))
+            {
+                m_showGrid = !m_showGrid;
+            }
             if (ImGui::MenuItem("Auto-center Model (A)"))
             {
                 autoCenterAndOrientModel();
@@ -358,6 +372,10 @@ void Viewer::render()
             if (ImGui::MenuItem("Toggle Camera Window (T)", nullptr, m_showCameraWindow))
             {
                 m_showCameraWindow = !m_showCameraWindow;
+            }
+            if (ImGui::MenuItem("Toggle Grid Control Window", nullptr, m_showGridControlWindow))
+            {
+                m_showGridControlWindow = !m_showGridControlWindow;
             }
             ImGui::EndPopup();
         }
@@ -469,11 +487,61 @@ void Viewer::render()
             }
             ImGui::PopItemWidth();
             m_customAspectRatio = glm::max(0.01f, m_customAspectRatio); // Ensure aspect ratio is not too small
-            ImGui::EndDisabled(); // End disable block
+            ImGui::EndDisabled();                                       // End disable block
 
             if (ImGui::Button("Reset View"))
             {
                 autoCenterAndOrientModel();
+            }
+
+            ImGui::End();
+        }
+
+        // 7. ImGui: Grid Control Window
+        if (m_showGridControlWindow)
+        {
+            float posX = ImGui::GetWindowViewport()->Pos.x + ImGui::GetWindowViewport()->Size.x;
+            ImGui::SetNextWindowPos(ImVec2(posX, ImGui::GetWindowViewport()->Pos.y + ImGui::GetWindowViewport()->Size.y / 2.0f), ImGuiCond_Always, ImVec2(1, 0.5));
+            ImGui::SetNextWindowSize(ImVec2(350, 0), ImGuiCond_FirstUseEver);
+            ImGui::Begin("Grid Control", &m_showGridControlWindow);
+
+            bool gridSettingsChanged = false;
+
+            // Grid Spacing
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Grid Spacing");
+            ImGui::SameLine();
+            float itemWidth = ImGui::GetContentRegionAvail().x;
+            ImGui::PushItemWidth(itemWidth);
+            if (ImGui::SliderFloat("##GridSpacing", &m_gridSpacing, 0.1f, 10.0f, "%.1f"))
+            {
+                gridSettingsChanged = true;
+            }
+            ImGui::PopItemWidth();
+            m_gridSpacing = glm::max(0.01f, m_gridSpacing); // Ensure spacing is not too small
+
+            // Grid Extent
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Grid Extent");
+            ImGui::SameLine();
+            itemWidth = ImGui::GetContentRegionAvail().x;
+            ImGui::PushItemWidth(itemWidth);
+            if (ImGui::SliderInt("##GridExtent", &m_gridExtent, 1, 100))
+            {
+                gridSettingsChanged = true;
+            }
+            ImGui::PopItemWidth();
+            m_gridExtent = glm::max(1, m_gridExtent); // Ensure extent is at least 1
+
+            // Grid Color
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Grid Color");
+            ImGui::SameLine();
+            ImGui::ColorEdit4("##GridColor", glm::value_ptr(m_gridColor));
+
+            if (gridSettingsChanged)
+            {
+                setupGrid(); // Regenerate grid with new settings
             }
 
             ImGui::End();
@@ -633,5 +701,142 @@ void Viewer::onMouseButton(int button, int action, double xpos, double ypos)
     }
 
     // Original mouse button handling for camera.
-    // For context menu, ImGui handles the right-click implicitly with BeginPopupContextWindow.
+}
+
+void Viewer::drawGrid()
+{
+    if (!m_gridShader || !m_showGrid)
+    {
+        return;
+    }
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDisable(GL_DEPTH_TEST); // Draw grid always on top or at a fixed depth
+
+    m_gridShader->use();
+
+    glm::mat4 projection;
+    float currentAspectRatio;
+    if (m_useCustomAspectRatio)
+    {
+        currentAspectRatio = m_customAspectRatio;
+    }
+    else
+    {
+        currentAspectRatio = static_cast<float>(width) / height;
+    }
+
+    if (usePerspective)
+        projection = glm::perspective(glm::radians(camera.GetZoom()), currentAspectRatio, 0.1f, 1000.0f);
+    else
+    {
+        float orthoHeight = 2.0f * camera.GetRadius() * tan(glm::radians(camera.GetZoom()) / 2.0f);
+        float orthoWidth = orthoHeight * currentAspectRatio;
+        projection = glm::ortho(-orthoWidth / 2.0f, orthoWidth / 2.0f, -orthoHeight / 2.0f, orthoHeight / 2.0f, 0.1f, 1000.0f);
+    }
+    glm::mat4 view = camera.GetViewMatrix();
+
+    m_gridShader->setMat4("projection", projection);
+    m_gridShader->setMat4("view", view);
+
+    // Draw X-axis (Red)
+    m_gridShader->setVec4("gridColor", glm::vec4(1.0f, 0.2f, 0.32f, 1.0f)); // X Axis (Red-ish)
+    glBindVertexArray(m_xAxisVAO);
+    glDrawArrays(GL_LINES, 0, 2); // 2 vertices for one line
+    glBindVertexArray(0);
+
+    // Draw Y-axis (Green)
+    m_gridShader->setVec4("gridColor", glm::vec4(0.54f, 0.86f, 0.0f, 1.0f)); // Y Axis (Green-ish)
+    glBindVertexArray(m_yAxisVAO);
+    glDrawArrays(GL_LINES, 0, 2); // 2 vertices for one line
+    glBindVertexArray(0);
+
+    // Draw major grid lines (half transparent)
+    m_gridShader->setVec4("gridColor", glm::vec4(m_gridColor.r, m_gridColor.g, m_gridColor.b, 0.5f)); // Half transparent
+    glBindVertexArray(m_majorGridVAO);
+    int numMajorGridVertices = (m_gridExtent * 2) * 2 + (m_gridExtent * 2) * 2; // (Number of lines in X-dir * 2 vertices) + (Number of lines in Y-dir * 2 vertices)
+    glDrawArrays(GL_LINES, 0, numMajorGridVertices);
+    glBindVertexArray(0);
+
+    glEnable(GL_DEPTH_TEST); // Re-enable depth test for other objects
+    glDisable(GL_BLEND);     // Disable blending
+}
+
+void Viewer::setupGrid()
+{
+    // Delete existing VAO/VBOs if they exist
+    if (m_xAxisVAO != 0)
+        glDeleteVertexArrays(1, &m_xAxisVAO);
+    if (m_xAxisVBO != 0)
+        glDeleteBuffers(1, &m_xAxisVBO);
+    if (m_yAxisVAO != 0)
+        glDeleteVertexArrays(1, &m_yAxisVAO);
+    if (m_yAxisVBO != 0)
+        glDeleteBuffers(1, &m_yAxisVBO);
+    if (m_majorGridVAO != 0)
+        glDeleteVertexArrays(1, &m_majorGridVAO);
+    if (m_majorGridVBO != 0)
+        glDeleteBuffers(1, &m_majorGridVBO);
+
+    float maxCoord = m_gridExtent * m_gridSpacing;
+
+    // --- X-Axis (Red) ---
+    std::vector<glm::vec3> xAxisVertices;
+    xAxisVertices.push_back(glm::vec3(-maxCoord, 0.0f, 0.0f));
+    xAxisVertices.push_back(glm::vec3(maxCoord, 0.0f, 0.0f));
+    glGenVertexArrays(1, &m_xAxisVAO);
+    glGenBuffers(1, &m_xAxisVBO);
+    glBindVertexArray(m_xAxisVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_xAxisVBO);
+    glBufferData(GL_ARRAY_BUFFER, xAxisVertices.size() * sizeof(glm::vec3), xAxisVertices.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // --- Y-Axis (Green) ---
+    std::vector<glm::vec3> yAxisVertices;
+    yAxisVertices.push_back(glm::vec3(0.0f, -maxCoord, 0.0f));
+    yAxisVertices.push_back(glm::vec3(0.0f, maxCoord, 0.0f));
+    glGenVertexArrays(1, &m_yAxisVAO);
+    glGenBuffers(1, &m_yAxisVBO);
+    glBindVertexArray(m_yAxisVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_yAxisVBO);
+    glBufferData(GL_ARRAY_BUFFER, yAxisVertices.size() * sizeof(glm::vec3), yAxisVertices.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
+    glEnableVertexAttribArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    // --- Major Grid Lines (excluding axes) ---
+    std::vector<glm::vec3> majorGridVertices;
+    // Generate X-parallel lines
+    for (int i = -m_gridExtent; i <= m_gridExtent; ++i)
+    {
+        if (i == 0)
+            continue; // Skip X-axis (y=0) as it's handled separately
+        float y = i * m_gridSpacing;
+        majorGridVertices.push_back(glm::vec3(-maxCoord, y, 0.0f));
+        majorGridVertices.push_back(glm::vec3(maxCoord, y, 0.0f));
+    }
+
+    // Generate Y-parallel lines
+    for (int i = -m_gridExtent; i <= m_gridExtent; ++i)
+    {
+        if (i == 0)
+            continue; // Skip Y-axis (x=0) as it's handled separately
+        float x = i * m_gridSpacing;
+        majorGridVertices.push_back(glm::vec3(x, -maxCoord, 0.0f));
+        majorGridVertices.push_back(glm::vec3(x, maxCoord, 0.0f));
+    }
+
+    glBufferData(GL_ARRAY_BUFFER, majorGridVertices.size() * sizeof(glm::vec3), majorGridVertices.data(), GL_STATIC_DRAW);
+
+    // Position attribute
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 }

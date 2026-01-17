@@ -69,8 +69,9 @@ private:
     bool m_showAxesWidget = true;                          // New: To toggle axes widget visibility
     bool m_showDebugWindow = false;                        // New: To toggle debug window visibility
     bool m_showCameraWindow = false;                       // New: To toggle camera window visibility
-    bool m_cameraControlWindowFirstOpen = true;            // New: To track if Camera Control window is opened for the first time
-    bool m_cameraDebugWindowFirstOpen = true;              // New: To track if Camera Debug window is opened for the first time
+    bool m_showGridControlWindow = false;
+    bool m_cameraControlWindowFirstOpen = true; // New: To track if Camera Control window is opened for the first time
+    bool m_cameraDebugWindowFirstOpen = true;   // New: To track if Camera Debug window is opened for the first time
 
     // Camera Animation State
     bool m_isAnimatingCamera = false;
@@ -91,19 +92,30 @@ private:
 
     // Model Drop Animation State
 
-    glm::vec3 m_modelAnimEndPosition;   // Ending position (actual center)
-    glm::vec3 m_currentModelPosition;   // The model's current animated position
+    glm::vec3 m_modelAnimEndPosition; // Ending position (actual center)
+    glm::vec3 m_currentModelPosition; // The model's current animated position
+
+    // Grid properties
+    std::unique_ptr<Shader> m_gridShader;
+    bool m_showGrid = true;
+    float m_gridSpacing = 10.0f;
+    int m_gridExtent = 10; // Number of major grid lines from the center (e.g., 10 means from -10 to +10)
+    glm::vec4 m_gridColor = glm::vec4(0.7f, 0.7f, 0.7f, 1.0f);
+    unsigned int m_xAxisVAO = 0, m_xAxisVBO = 0;
+    unsigned int m_yAxisVAO = 0, m_yAxisVBO = 0;
+    unsigned int m_majorGridVAO = 0, m_majorGridVBO = 0;
 
     // Camera control variables
     float m_focalLength = 50.0f;
     float m_sensorHeight = 24.0f; // Assuming 35mm full-frame equivalent sensor height
 
     float m_customAspectRatio = 16.0f / 9.0f;
-    bool m_useCustomAspectRatio = false; // Re-added: Flag to use custom aspect ratio
+    bool m_useCustomAspectRatio = false;          // Re-added: Flag to use custom aspect ratio
     float m_lastWindowAspectRatio = 16.0f / 9.0f; // New: Stores the last calculated window aspect ratio
 
-
     void autoCenterAndOrientModel();
+    void drawGrid();
+    void setupGrid();
     // ... existing members ...
     float getUiScale() const;
 };
