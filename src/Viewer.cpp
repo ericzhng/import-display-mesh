@@ -14,7 +14,8 @@ Viewer::Viewer(int width, int height)
       m_lightingEnabled(true), m_ambientStrength(0.1f), // Initialize new members
       m_lastFrameTime(0.0f),                            // Initialize m_lastFrameTime here
       m_currentModelPosition(0.0f, 0.0f, 0.0f),
-      m_isDarkTheme(false) // Initialize m_isDarkTheme
+      m_isDarkTheme(false), // Initialize m_isDarkTheme
+      m_customAspectRatio(static_cast<float>(width) / height)
 {
     background = std::make_unique<Background>();
     uiRenderer = std::make_unique<UiRenderer>();                                // Initialize UiRenderer
@@ -171,7 +172,8 @@ void Viewer::render()
     // glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // Removed as background is drawn by Background class
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    float aspectRatio = (float)width / (float)height;
+    // Determine the aspect ratio to use
+    float currentAspectRatio = m_customAspectRatio;
 
     // 1. Draw Background
     if (background)
@@ -194,11 +196,11 @@ void Viewer::render()
 
         glm::mat4 projection;
         if (usePerspective)
-            projection = glm::perspective(glm::radians(camera.GetZoom()), aspectRatio, 0.1f, 1000.0f);
+            projection = glm::perspective(glm::radians(camera.GetZoom()), currentAspectRatio, 0.1f, 1000.0f);
         else
         {
             float orthoHeight = 2.0f * camera.GetRadius() * tan(glm::radians(camera.GetZoom()) / 2.0f);
-            float orthoWidth = orthoHeight * aspectRatio;
+            float orthoWidth = orthoHeight * currentAspectRatio;
             projection = glm::ortho(-orthoWidth / 2.0f, orthoWidth / 2.0f, -orthoHeight / 2.0f, orthoHeight / 2.0f, 0.1f, 1000.0f);
         }
         glm::mat4 view = camera.GetViewMatrix();
@@ -375,6 +377,11 @@ void Viewer::render()
         // 5. ImGui: Debug Window
         if (m_showDebugWindow)
         {
+            if (m_cameraDebugWindowFirstOpen)
+            {
+                ImGui::SetNextWindowPos(ImGui::GetWindowViewport()->Pos, ImGuiCond_FirstUseEver); // Top-left of the application window
+                m_cameraDebugWindowFirstOpen = false;
+            }
             ImGui::Begin("Camera Debug Info", &m_showDebugWindow);
             ImGui::Text("Position: (%.2f, %.2f, %.2f)", camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
             ImGui::Text("Target:   (%.2f, %.2f, %.2f)", camera.GetTarget().x, camera.GetTarget().y, camera.GetTarget().z);
@@ -389,26 +396,79 @@ void Viewer::render()
         // 6. ImGui: Camera Control Window
         if (m_showCameraWindow)
         {
+            // Position top-right of the application window's viewport
+            if (m_cameraControlWindowFirstOpen)
+            {
+                float posX = ImGui::GetWindowViewport()->Pos.x + ImGui::GetWindowViewport()->Size.x;
+                ImGui::SetNextWindowPos(ImVec2(posX, ImGui::GetWindowViewport()->Pos.y), ImGuiCond_FirstUseEver, ImVec2(1, 0));
+                ImGui::SetNextWindowSize(ImVec2(350, 0), ImGuiCond_FirstUseEver); // Make it wider
+                m_cameraControlWindowFirstOpen = false;
+            }
             ImGui::Begin("Camera Control", &m_showCameraWindow);
 
-            // Get current camera state
-            glm::vec3 currentPosition = camera.GetPosition();
-            glm::vec3 currentTarget = camera.GetTarget();
-            glm::vec3 currentUp = camera.GetUp();
+            float currentFov = camera.GetZoom();
+            bool valueEdited = false; // Flag to track if any value was edited
 
-            // Create temporary buffers for ImGui widgets
-            float position[3] = {currentPosition.x, currentPosition.y, currentPosition.z};
-            float target[3] = {currentTarget.x, currentTarget.y, currentTarget.z};
-
-            bool positionChanged = ImGui::InputFloat3("Position", position, "%.3f");
-            bool targetChanged = ImGui::InputFloat3("Target", target, "%.3f");
-
-            if (positionChanged || targetChanged)
+            // Sensor Height (mm)
+            ImGui::AlignTextToFramePadding(); // Align text vertically with the following widget
+            ImGui::Text("Sensor Height (mm)");
+            ImGui::SameLine();
+            float itemWidth = ImGui::GetContentRegionAvail().x;
+            ImGui::PushItemWidth(itemWidth);
+            if (ImGui::InputFloat("##SensorHeight", &m_sensorHeight, 1.0f, 10.0f, "%.1f"))
             {
-                camera.SetPositionAndTarget(glm::vec3(position[0], position[1], position[2]),
-                                            glm::vec3(target[0], target[1], target[2]),
-                                            currentUp); // Preserve the current 'up' vector
+                valueEdited = true;
+                // If Sensor Height is changed, recalculate Focal Length
+                float fovy_radians = glm::radians(currentFov);
+                m_focalLength = (m_sensorHeight / 2.0f) / glm::tan(fovy_radians / 2.0f);
             }
+            ImGui::PopItemWidth();
+            m_sensorHeight = glm::max(0.1f, m_sensorHeight); // Ensure sensor height is not too small
+
+            // FOV (degrees)
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("FOV (degrees)");
+            ImGui::SameLine();
+            itemWidth = ImGui::GetContentRegionAvail().x;
+            ImGui::PushItemWidth(itemWidth);
+            if (ImGui::SliderFloat("##FOV", &currentFov, 1.0f, 120.0f))
+            {
+                valueEdited = true;
+                // If FOV is changed, recalculate Focal Length
+                float fovy_radians = glm::radians(currentFov);
+                m_focalLength = (m_sensorHeight / 2.0f) / glm::tan(fovy_radians / 2.0f);
+                camera.SetZoom(currentFov);
+            }
+            ImGui::PopItemWidth();
+            currentFov = glm::clamp(currentFov, 0.1f, 179.9f); // Clamp FOV for glm::perspective stability
+
+            // Focal Length (mm)
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Focal Length (mm)");
+            ImGui::SameLine();
+            itemWidth = ImGui::GetContentRegionAvail().x;
+            ImGui::PushItemWidth(itemWidth);
+            if (ImGui::SliderFloat("##FocalLength", &m_focalLength, 1.0f, 200.0f, "%.1f")) // Lower min focal length
+            {
+                valueEdited = true;
+                // If Focal Length is changed, recalculate FOV
+                float fovy_radians = 2.0f * glm::atan((m_sensorHeight / 2.0f) / m_focalLength);
+                camera.SetZoom(glm::degrees(fovy_radians));
+            }
+            ImGui::PopItemWidth();
+            m_focalLength = glm::max(0.1f, m_focalLength); // Ensure focal length is not too small
+
+            ImGui::Separator();
+
+            // Aspect Ratio
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Aspect Ratio");
+            ImGui::SameLine();
+            itemWidth = ImGui::GetContentRegionAvail().x;
+            ImGui::PushItemWidth(itemWidth);
+            ImGui::SliderFloat("##CustomAspectRatio", &m_customAspectRatio, 0.2f, 2.0f, "%.2f");
+            ImGui::PopItemWidth();
+            m_customAspectRatio = glm::max(0.01f, m_customAspectRatio); // Ensure aspect ratio is not too small
 
             if (ImGui::Button("Reset View"))
             {

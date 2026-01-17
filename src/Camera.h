@@ -30,6 +30,8 @@ public:
     float GetZoom() const { return Zoom; }
     float GetRadius() const { return Radius; }
 
+    void SetZoom(float zoom) { Zoom = zoom; }
+
     // Processes input received from a mouse scroll-wheel event
     void ProcessMouseScroll(float yoffset);
 

@@ -69,6 +69,8 @@ private:
     bool m_showAxesWidget = true;                          // New: To toggle axes widget visibility
     bool m_showDebugWindow = false;                        // New: To toggle debug window visibility
     bool m_showCameraWindow = false;                       // New: To toggle camera window visibility
+    bool m_cameraControlWindowFirstOpen = true;            // New: To track if Camera Control window is opened for the first time
+    bool m_cameraDebugWindowFirstOpen = true;              // New: To track if Camera Debug window is opened for the first time
 
     // Camera Animation State
     bool m_isAnimatingCamera = false;
@@ -94,6 +96,13 @@ private:
     glm::vec3 m_modelAnimStartPosition; // Starting position (elevated)
     glm::vec3 m_modelAnimEndPosition;   // Ending position (actual center)
     glm::vec3 m_currentModelPosition;   // The model's current animated position
+
+    // Camera control variables
+    float m_focalLength = 50.0f;
+    float m_sensorHeight = 24.0f; // Assuming 35mm full-frame equivalent sensor height
+
+    float m_customAspectRatio = 16.0f / 9.0f;
+
 
     void autoCenterAndOrientModel();
     // ... existing members ...
