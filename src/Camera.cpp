@@ -3,7 +3,8 @@
 #include <limits> // For std::numeric_limits
 
 // Small epsilon for float comparisons
-const float AXIS_ALIGNMENT_EPSILON = 0.8f; // Dot product threshold for considering alignment
+const float AXIS_ALIGNMENT_EPSILON = 0.7f; // Dot product threshold for considering alignment
+const float MIN_DOMINANCE_THRESHOLD = 0.1f; // Minimum dot product to consider an axis dominant, even if not strongly aligned
 
 Camera::Camera(glm::vec3 position, glm::vec3 target, glm::vec3 up)
 {
@@ -136,36 +137,48 @@ void Camera::updateCameraVectors()
 }
 
 Axis Camera::GetCurrentViewingAxis() const {
-    // Normalize Front vector for accurate dot product comparison
     glm::vec3 normalizedFront = glm::normalize(Front);
     std::cout << "Camera Front: (" << normalizedFront.x << ", " << normalizedFront.y << ", " << normalizedFront.z << ")" << std::endl;
 
     // Define cardinal axis directions
-    glm::vec3 x_pos_dir = glm::vec3(1.0f, 0.0f, 0.0f);
-    glm::vec3 x_neg_dir = glm::vec3(-1.0f, 0.0f, 0.0f);
-    glm::vec3 y_pos_dir = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 y_neg_dir = glm::vec3(0.0f, -1.0f, 0.0f);
-    glm::vec3 z_pos_dir = glm::vec3(0.0f, 0.0f, 1.0f);
-    glm::vec3 z_neg_dir = glm::vec3(0.0f, 0.0f, -1.0f);
+    std::vector<std::pair<glm::vec3, Axis>> cardinalDirections = {
+        {glm::vec3(1.0f, 0.0f, 0.0f), Axis::X_POS},
+        {glm::vec3(-1.0f, 0.0f, 0.0f), Axis::X_NEG},
+        {glm::vec3(0.0f, 1.0f, 0.0f), Axis::Y_POS},
+        {glm::vec3(0.0f, -1.0f, 0.0f), Axis::Y_NEG},
+        {glm::vec3(0.0f, 0.0f, 1.0f), Axis::Z_POS},
+        {glm::vec3(0.0f, 0.0f, -1.0f), Axis::Z_NEG}
+    };
 
-    float dot_x_pos = glm::dot(normalizedFront, x_pos_dir);
-    float dot_x_neg = glm::dot(normalizedFront, x_neg_dir);
-    float dot_y_pos = glm::dot(normalizedFront, y_pos_dir);
-    float dot_y_neg = glm::dot(normalizedFront, y_neg_dir);
-    float dot_z_pos = glm::dot(normalizedFront, z_pos_dir);
-    float dot_z_neg = glm::dot(normalizedFront, z_neg_dir);
+    float maxAbsDotProduct = 0.0f;
+    Axis mostDominantAxis = Axis::NONE;
+    Axis stronglyAlignedAxis = Axis::NONE;
 
-    std::cout << "Dot Products: X+ " << dot_x_pos << ", X- " << dot_x_neg
-              << ", Y+ " << dot_y_pos << ", Y- " << dot_y_neg
-              << ", Z+ " << dot_z_pos << ", Z- " << dot_z_neg << std::endl;
+    std::cout << "Dot Products: ";
+    for (const auto& entry : cardinalDirections) {
+        float dotProduct = glm::dot(normalizedFront, entry.first);
+        std::cout << "Axis " << static_cast<int>(entry.second) << ": " << dotProduct << " ";
 
-    // Compare dot products to find the closest axis
-    if (dot_x_pos > AXIS_ALIGNMENT_EPSILON) return Axis::X_POS;
-    if (dot_x_neg > AXIS_ALIGNMENT_EPSILON) return Axis::X_NEG;
-    if (dot_y_pos > AXIS_ALIGNMENT_EPSILON) return Axis::Y_POS;
-    if (dot_y_neg > AXIS_ALIGNMENT_EPSILON) return Axis::Y_NEG;
-    if (dot_z_pos > AXIS_ALIGNMENT_EPSILON) return Axis::Z_POS;
-    if (dot_z_neg > AXIS_ALIGNMENT_EPSILON) return Axis::Z_NEG;
+        if (dotProduct > AXIS_ALIGNMENT_EPSILON) {
+            stronglyAlignedAxis = entry.second; // Found a strongly aligned axis
+        }
 
-    return Axis::NONE; // Not aligned with a primary axis
+        if (std::abs(dotProduct) > maxAbsDotProduct) {
+            maxAbsDotProduct = std::abs(dotProduct);
+            mostDominantAxis = entry.second; // Store the actual axis (POS or NEG)
+        }
+    }
+    std::cout << std::endl;
+
+    // If a strongly aligned axis is found, return it immediately
+    if (stronglyAlignedAxis != Axis::NONE) {
+        return stronglyAlignedAxis;
+    }
+
+    // Otherwise, return the most dominant axis, if it exceeds a minimal threshold
+    if (maxAbsDotProduct > MIN_DOMINANCE_THRESHOLD) {
+        return mostDominantAxis;
+    }
+
+    return Axis::NONE; // Truly not aligned with any dominant primary axis
 }

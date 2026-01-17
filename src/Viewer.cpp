@@ -38,7 +38,8 @@ Viewer::Viewer(int width, int height)
       m_lastFrameTime(0.0f),                            // Initialize m_lastFrameTime here
       m_currentModelPosition(0.0f, 0.0f, 0.0f),
       m_isDarkTheme(false), // Initialize m_isDarkTheme
-      m_customAspectRatio(static_cast<float>(width) / height)
+      m_customAspectRatio(static_cast<float>(width) / height),
+      m_lastAlignedAxis(Axis::NONE) // Initialize new member m_lastAlignedAxis
 {
     background = std::make_unique<Background>();
     uiRenderer = std::make_unique<UiRenderer>();                                      // Initialize UiRenderer
@@ -632,37 +633,9 @@ void Viewer::render()
 void Viewer::OnAxesWidgetClick(Axis clickedAxis)
 {
     std::cout << "OnAxesWidgetClick: Initial clicked axis: " << static_cast<int>(clickedAxis) << std::endl;
-    std::cout << "OnAxesWidgetClick: Initial clicked axis (enum): ";
-    switch (clickedAxis)
-    {
-    case Axis::X_POS:
-        std::cout << "X_POS";
-        break;
-    case Axis::X_NEG:
-        std::cout << "X_NEG";
-        break;
-    case Axis::Y_POS:
-        std::cout << "Y_POS";
-        break;
-    case Axis::Y_NEG:
-        std::cout << "Y_NEG";
-        break;
-    case Axis::Z_POS:
-        std::cout << "Z_POS";
-        break;
-    case Axis::Z_NEG:
-        std::cout << "Z_NEG";
-        break;
-    case Axis::NONE:
-        std::cout << "NONE";
-        break;
-    }
-    std::cout << std::endl;
 
     glm::vec3 modelCenter = glm::vec3(0.0f);
-    float distance = camera.GetRadius(); // Use current camera radius as a base distance
-
-    std::cout << "OnAxesWidgetClick: Initial camera radius: " << camera.GetRadius() << std::endl;
+    float distance = camera.GetRadius();
 
     if (model)
     {
@@ -672,64 +645,33 @@ void Viewer::OnAxesWidgetClick(Axis clickedAxis)
         float fovRadians = glm::radians(camera.GetZoom());
         distance = (maxDim / 2.0f) / glm::tan(fovRadians / 2.0f);
         distance *= 1.5f; // Add buffer
-        std::cout << "OnAxesWidgetClick: Model loaded. modelCenter: (" << modelCenter.x << ", " << modelCenter.y << ", " << modelCenter.z << ")" << std::endl;
-        std::cout << "OnAxesWidgetClick: Calculated distance (with buffer): " << distance << std::endl;
-    }
-    else
-    {
-        std::cout << "OnAxesWidgetClick: No model loaded. Using default modelCenter (0,0,0) and camera radius for distance." << std::endl;
     }
 
     Axis currentViewingAxis = camera.GetCurrentViewingAxis();
     std::cout << "OnAxesWidgetClick: Current viewing axis from camera: " << static_cast<int>(currentViewingAxis) << std::endl;
-    std::cout << "OnAxesWidgetClick: Current viewing axis (enum): ";
-    switch (currentViewingAxis)
-    {
-    case Axis::X_POS:
-        std::cout << "X_POS";
-        break;
-    case Axis::X_NEG:
-        std::cout << "X_NEG";
-        break;
-    case Axis::Y_POS:
-        std::cout << "Y_POS";
-        break;
-    case Axis::Y_NEG:
-        std::cout << "Y_NEG";
-        break;
-    case Axis::Z_POS:
-        std::cout << "Z_POS";
-        break;
-    case Axis::Z_NEG:
-        std::cout << "Z_NEG";
-        break;
-    case Axis::NONE:
-        std::cout << "NONE";
-        break;
-    }
-    std::cout << std::endl;
 
     Axis targetAxis;
     Axis clickedCardinal = getCardinalAxisEnum(clickedAxis);
-    Axis currentCardinal = getCardinalAxisEnum(currentViewingAxis);
+    Axis lastAlignedCardinal = getCardinalAxisEnum(m_lastAlignedAxis); // Get cardinal from stored last aligned axis
 
     std::cout << "OnAxesWidgetClick: Clicked cardinal axis: " << static_cast<int>(clickedCardinal) << std::endl;
-    std::cout << "OnAxesWidgetClick: Current cardinal axis: " << static_cast<int>(currentCardinal) << std::endl;
+    std::cout << "OnAxesWidgetClick: Last aligned cardinal axis: " << static_cast<int>(lastAlignedCardinal) << std::endl;
 
-    if (currentViewingAxis != Axis::NONE && clickedCardinal == currentCardinal)
+    // Use m_lastAlignedAxis to determine if we should flip
+    if (m_lastAlignedAxis != Axis::NONE && clickedCardinal == lastAlignedCardinal)
     {
-        // If the current camera view is aligned with the same cardinal axis as the clicked label,
-        // then toggle the current view (go to its opposite direction).
-        targetAxis = GetAxisOpposite(currentViewingAxis);
-        std::cout << "OnAxesWidgetClick: Current view aligned with clicked cardinal axis. Toggling to opposite of current view: " << static_cast<int>(targetAxis) << std::endl;
+        // If the clicked axis's cardinal direction matches the last intended aligned axis, then flip.
+        targetAxis = GetAxisOpposite(m_lastAlignedAxis); // Flip the last intended aligned axis
+        std::cout << "OnAxesWidgetClick: Decision: Flipped to opposite view based on last aligned. Target: " << static_cast<int>(targetAxis) << std::endl;
     }
     else
     {
-        // If not aligned with the same cardinal axis, or current view is NONE,
-        // just set the view to the clicked axis.
+        // If no last aligned axis, or clicked axis is for a different cardinal direction,
+        // just orient to the clicked axis.
         targetAxis = clickedAxis;
-        std::cout << "OnAxesWidgetClick: Not aligned with same cardinal axis or current view is NONE. Setting target to clicked axis: " << static_cast<int>(targetAxis) << std::endl;
+        std::cout << "OnAxesWidgetClick: Decision: Set to clicked axis. Target: " << static_cast<int>(targetAxis) << std::endl;
     }
+    m_lastAlignedAxis = targetAxis; // Always update m_lastAlignedAxis after determining targetAxis
 
     m_cameraAnimStartPosition = camera.GetPosition();
     m_cameraAnimStartTarget = camera.GetTarget();

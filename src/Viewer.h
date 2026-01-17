@@ -121,6 +121,7 @@ private:
     void autoCenterAndOrientModel();
     void drawGrid(int viewportWidth, int viewportHeight);
     void setupGrid();
+    Axis m_lastAlignedAxis; // New: Stores the last intended aligned axis
     // ... existing members ...
     float getUiScale() const;
 };

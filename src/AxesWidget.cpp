@@ -3,7 +3,7 @@
 #include <GLFW/glfw3.h> // Required for GLFW_MOUSE_BUTTON_LEFT and GLFW_PRESS
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp> // For glm::value_ptr
-#include <algorithm> // Required for std::sort
+#include <algorithm>            // Required for std::sort
 
 AxesWidget::AxesWidget(int screenWidth, int screenHeight, UiRenderer *uiRenderer, IAxesWidgetListener *listener)
     : axesVAO(0), axesVBO(0), uiRenderer(uiRenderer), m_listener(listener)
@@ -105,22 +105,24 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
     float labelCircleRadius = 8.0f; // Smaller radius for the background circle
     float fontSize = 0.3f;          // Larger scale for the text labels
 
-    struct LabelDrawData {
+    struct LabelDrawData
+    {
         glm::vec3 axisDir;
         std::string labelText;
         glm::vec4 axisColor;
         Axis axisEnum;
-        float depth; // Raw Z-component in camera space (positive is further away)
+        float depth;         // Raw Z-component in camera space (positive is further away)
         glm::vec2 screenPos; // Store computed screen position for drawing and hitbox
     };
 
     std::vector<LabelDrawData> labelsToDraw;
 
-    std::cout << "--- AxesWidget Label Depths (before sort) ---" << std::endl;
+    // std::cout << "--- AxesWidget Label Depths (before sort) ---" << std::endl;
     // Helper to populate label data
-    auto collectLabelData = [&](glm::vec3 dir, const std::string &txt, glm::vec4 color, Axis aEnum) {
+    auto collectLabelData = [&](glm::vec3 dir, const std::string &txt, glm::vec4 color, Axis aEnum)
+    {
         glm::vec4 tipCameraSpace = widgetView * glm::vec4(dir, 1.0f);
-        std::cout << "Axis: " << static_cast<int>(aEnum) << ", World Dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ")" << ", CamZ: " << tipCameraSpace.z << std::endl;
+        // std::cout << "Axis: " << static_cast<int>(aEnum) << ", World Dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ")" << ", CamZ: " << tipCameraSpace.z << std::endl;
         glm::vec4 tipClip = widgetProjection * tipCameraSpace;
         glm::vec2 tipScreenNDC = glm::vec2(tipClip) / tipClip.w;
 
@@ -154,18 +156,20 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
     collectLabelData(glm::vec3(0.0f, -0.7f, 0.0f), "", glm::vec4(0.54f, 0.86f, 0.0f, 1.0f), Axis::Y_NEG);
     collectLabelData(glm::vec3(0.0f, 0.0f, 0.7f), "Z", glm::vec4(0.15f, 0.56f, 1.0f, 1.0f), Axis::Z_POS);
     collectLabelData(glm::vec3(0.0f, 0.0f, -0.7f), "", glm::vec4(0.15f, 0.56f, 1.0f, 1.0f), Axis::Z_NEG);
-    std::cout << "------------------------------------------" << std::endl;
+    // std::cout << "------------------------------------------" << std::endl;
 
     // Sort labels by depth (farthest first, so closest are drawn last)
-    std::sort(labelsToDraw.begin(), labelsToDraw.end(), [](const LabelDrawData &a, const LabelDrawData &b) {
-        return a.depth < b.depth; // Sort ascending, so smallest Z (closest) first.
-    });
+    std::sort(labelsToDraw.begin(), labelsToDraw.end(), [](const LabelDrawData &a, const LabelDrawData &b)
+              {
+                  return a.depth < b.depth; // Sort ascending, so smallest Z (closest) first.
+              });
 
-    std::cout << "--- AxesWidget Labels (sorted order) ---" << std::endl;
-    for (const auto& data : labelsToDraw) {
-        std::cout << "Axis: " << static_cast<int>(data.axisEnum) << ", Depth: " << data.depth << std::endl;
-    }
-    std::cout << "------------------------------------------" << std::endl;
+    // std::cout << "--- AxesWidget Labels (sorted order) ---" << std::endl;
+    // for (const auto &data : labelsToDraw)
+    // {
+    // std::cout << "Axis: " << static_cast<int>(data.axisEnum) << ", Depth: " << data.depth << std::endl;
+    // }
+    // std::cout << "------------------------------------------" << std::endl;
     // Draw sorted labels
     for (const auto &data : labelsToDraw)
     {
