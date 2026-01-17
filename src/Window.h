@@ -6,6 +6,11 @@
 #include <iostream>
 #include "IEventHandler.h"
 
+// ImGui includes
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+
 class Window
 {
 public:
@@ -13,6 +18,8 @@ public:
     ~Window();
 
     bool init();
+    void initImGui();     // New method
+    void shutdownImGui(); // New method
     bool shouldClose() const;
     void swapBuffers();
     void pollEvents();

@@ -96,7 +96,7 @@ void main()
     vec3 result = (ambient + totalDiffuse) * objectColor.rgb + totalSpecular;
 
     // Apply tone mapping
-    // result = ACESFilm(result);
+    result = ACESFilm(result);
 
     FragColor = vec4(result, 1.0);
 }

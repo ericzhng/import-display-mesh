@@ -4,6 +4,11 @@
 #include <filesystem>
 #include <stdexcept>
 
+// ImGui
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+
 void pause_and_exit(int exit_code)
 {
     std::cout << "Press ENTER to exit..." << std::endl;
@@ -15,7 +20,6 @@ int main(int argc, char *argv[])
 {
     try
     {
-        std::cout << "Initializing Window..." << std::endl;
         Window window(1000, 800, "3D Viewer");
         if (!window.init())
         {
@@ -23,16 +27,12 @@ int main(int argc, char *argv[])
             pause_and_exit(-1);
         }
 
-        std::cout << "Initializing Viewer..." << std::endl;
+        window.initImGui(); // Initialize ImGui
+
         Viewer viewer(1000, 800);
-
-        std::cout << "Linking event handler..." << std::endl;
         window.setEventHandler(&viewer);
-
-        std::cout << "Initializing viewer subsystems..." << std::endl;
         viewer.init();
 
-        std::cout << "Loading model..." << std::endl;
         std::string modelPath = "examples/skyscraper.obj";
 
         if (argc > 1)
@@ -48,13 +48,37 @@ int main(int argc, char *argv[])
 
         viewer.loadModel(modelPath);
 
-        std::cout << "Entering main loop..." << std::endl;
+        // No more std::cout after this point for cleaner output
+        // std::cout << "Entering main loop..." << std::endl;
         while (!window.shouldClose())
         {
-            viewer.render();
-            window.swapBuffers();
             window.pollEvents();
+
+            // Start the Dear ImGui frame
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
+            viewer.render(); // Render scene and potentially ImGui elements
+
+            // ImGui rendering
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+            // Update and Render additional Platform Windows
+            ImGuiIO &io = ImGui::GetIO();
+            if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+            {
+                GLFWwindow *backup_current_context = glfwGetCurrentContext();
+                ImGui::UpdatePlatformWindows();
+                ImGui::RenderPlatformWindowsDefault();
+                glfwMakeContextCurrent(backup_current_context);
+            }
+
+            window.swapBuffers();
         }
+
+        window.shutdownImGui(); // Shutdown ImGui
 
         std::cout << "Exiting." << std::endl;
     }

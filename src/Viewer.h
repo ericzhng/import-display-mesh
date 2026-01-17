@@ -15,6 +15,11 @@
 #include "UiRenderer.h"   // Include UiRenderer
 #include "TextRenderer.h" // Include TextRenderer
 
+// ImGui
+#include "imgui.h"
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_opengl3.h"
+
 class Viewer : public IEventHandler
 {
 public:
@@ -31,7 +36,6 @@ public:
     void onMouseMove(float xpos, float ypos, bool leftButton, bool middleButton) override;
     void onScroll(float yoffset) override;
     void onMouseButton(int button, int action, double xpos, double ypos) override;
-    void drawContextMenu();
     void setPerspective(bool enable) { usePerspective = enable; }
     void setBackgroundTheme(bool isDarkTheme);
 
@@ -63,29 +67,7 @@ private:
     bool m_lightingEnabled;                                // New: To toggle lighting
     float m_ambientStrength;                               // New: To control ambient light strength
     bool m_showAxesWidget = true;                          // New: To toggle axes widget visibility
-
-    // Context menu state
-    bool m_showContextMenu = false;
-    float m_contextMenuX = 0.0f;
-    float m_contextMenuY = 0.0f;
-
-    // Context menu properties (centralized constants)
-    const float MENU_WIDTH = 350.0f;
-    const float ITEM_HEIGHT = 45.0f;
-    const float PADDING = 15.0f;
-    // const float FONT_SIZE = 1.2f; // Removed to be calculated dynamically
-
-    enum class ContextMenuItem
-    {
-        ToggleLighting,
-        ToggleEdges,
-        TogglePerspective,
-        ToggleBackgroundTheme,
-        ToggleAxesWidget,
-        AutoCenterModel,
-        ImportModel,
-        COUNT // Keep track of the number of items
-    };
+    bool m_showDebugWindow = false;                        // New: To toggle debug window visibility
 
     // Camera Animation State
     bool m_isAnimatingCamera = false;

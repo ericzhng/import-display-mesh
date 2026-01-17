@@ -272,10 +272,97 @@ void Viewer::render()
             axesWidget->Draw(view, projection, *mainShader, width, height); // Pass screen width and height
         }
 
-        // 4. Draw Context Menu if active
-        if (m_showContextMenu)
+        // Setup Dockspace
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->Pos);
+        ImGui::SetNextWindowSize(viewport->Size);
+        ImGui::SetNextWindowViewport(viewport->ID);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+
+        ImGui::Begin("DockSpaceWindow", nullptr, window_flags);
+        ImGui::PopStyleVar(3);
+        ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+        ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
+        ImGui::End();
+
+        // 4. ImGui: Context Menu (replaces old custom context menu logic)
+        // Use BeginPopupContextVoid to create a global popup not tied to any specific ImGui window.
+        if (ImGui::BeginPopupContextVoid("ModelViewerContextMenu", ImGuiPopupFlags_MouseButtonRight))
         {
-            drawContextMenu();
+            if (ImGui::MenuItem("Toggle Lighting (L)", nullptr, m_lightingEnabled))
+            {
+                m_lightingEnabled = !m_lightingEnabled;
+            }
+            if (ImGui::BeginMenu("View Mode (V)"))
+            {
+                if (ImGui::MenuItem("Shaded", nullptr, m_modelViewMode == ModelViewMode::Shaded))
+                {
+                    m_modelViewMode = ModelViewMode::Shaded;
+                }
+                if (ImGui::MenuItem("Wireframe", nullptr, m_modelViewMode == ModelViewMode::Wireframe))
+                {
+                    m_modelViewMode = ModelViewMode::Wireframe;
+                }
+                if (ImGui::MenuItem("Shaded With Edges", nullptr, m_modelViewMode == ModelViewMode::ShadedWithEdges))
+                {
+                    m_modelViewMode = ModelViewMode::ShadedWithEdges;
+                }
+                ImGui::EndMenu();
+            }
+            if (ImGui::MenuItem("Toggle Perspective (P)", nullptr, usePerspective))
+            {
+                usePerspective = !usePerspective;
+            }
+            if (ImGui::MenuItem("Toggle Background (B)", nullptr, m_isDarkTheme))
+            {
+                setBackgroundTheme(!m_isDarkTheme);
+            }
+            if (ImGui::MenuItem("Toggle Axes (C)", nullptr, m_showAxesWidget))
+            {
+                m_showAxesWidget = !m_showAxesWidget;
+            }
+            if (ImGui::MenuItem("Auto-center Model (A)"))
+            {
+                autoCenterAndOrientModel();
+            }
+            if (ImGui::MenuItem("Import Model (I)"))
+            {
+                char const *lTheOpenFileName;
+                char const *lFilterPatterns[2] = {"*.obj", "*.stl"};
+                lTheOpenFileName = tinyfd_openFileDialog(
+                    "Open 3D Model", "", 2, lFilterPatterns, "3D Model Files (*.obj, *.stl)", 0);
+                if (lTheOpenFileName)
+                {
+                    std::string filePath(lTheOpenFileName);
+                    loadModel(filePath);
+                }
+                else
+                {
+                    std::cout << "No file selected." << std::endl;
+                }
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Toggle Debug Window (D)", nullptr, m_showDebugWindow))
+            {
+                m_showDebugWindow = !m_showDebugWindow;
+            }
+            ImGui::EndPopup();
+        }
+
+        // 5. ImGui: Debug Window
+        if (m_showDebugWindow)
+        {
+            ImGui::Begin("Camera Debug Info", &m_showDebugWindow);
+            ImGui::Text("Position: (%.2f, %.2f, %.2f)", camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
+            ImGui::Text("Target:   (%.2f, %.2f, %.2f)", camera.GetTarget().x, camera.GetTarget().y, camera.GetTarget().z);
+            ImGui::Text("Up:       (%.2f, %.2f, %.2f)", camera.GetUp().x, camera.GetUp().y, camera.GetUp().z);
+            ImGui::Text("Front:    (%.2f, %.2f, %.2f)", camera.GetFront().x, camera.GetFront().y, camera.GetFront().z);
+            ImGui::Text("Right:    (%.2f, %.2f, %.2f)", camera.GetRight().x, camera.GetRight().y, camera.GetRight().z);
+            ImGui::Text("Radius:   %.2f", camera.GetRadius());
+            ImGui::End();
         }
     }
 }
@@ -367,12 +454,22 @@ void Viewer::onKey(int key, int action)
             std::cout << "I key pressed. No file selected." << std::endl;
         }
     }
+
+    if (key == GLFW_KEY_D && action == GLFW_PRESS)
+    {
+        m_showDebugWindow = !m_showDebugWindow;
+        std::cout << "D key pressed. Debug Window Visible: " << (m_showDebugWindow ? "true" : "false") << std::endl;
+    }
 }
 
 void Viewer::onMouseMove(float xpos, float ypos, bool leftButton, bool middleButton)
 {
-    if (m_showContextMenu)
-        return; // Do not orbit if context menu is open
+    // If ImGui is capturing the mouse, do not process camera movement
+    if (ImGui::GetIO().WantCaptureMouse)
+    {
+        firstMouse = true; // Reset firstMouse to avoid jump when orbiting after ImGui interaction
+        return;
+    }
 
     if (firstMouse)
     {
@@ -397,228 +494,22 @@ void Viewer::onMouseMove(float xpos, float ypos, bool leftButton, bool middleBut
 
 void Viewer::onScroll(float yoffset)
 {
-    if (m_showContextMenu)
-        return; // Do not zoom if context menu is open
-    camera.ProcessMouseScroll(yoffset);
-}
-
-// Helper to calculate scale (You can place this at the top of Viewer.cpp or as a private helper)
-float Viewer::getUiScale() const
-{
-    // Reference height (e.g., 1080p).
-    // If the window is 2160p (4K), scale will be 2.0.
-    const float REF_HEIGHT = 1080.0f;
-
-    // Ensure scale doesn't drop below 1.0f (optional, keeps menu readable on small screens)
-    return std::max(1.0f, (float)height / REF_HEIGHT);
-}
-
-void Viewer::drawContextMenu()
-{
-    if (!uiRenderer || !textRenderer)
-        return;
-
-    // DEBUG: Original m_contextMenu position before alignment calculations
-    std::cout << "drawContextMenu - Initial m_contextMenu Pos: X=" << m_contextMenuX << ", Y=" << m_contextMenuY << std::endl;
-
-    float uiScale = getUiScale();
-
-    float scaledMenuWidth = MENU_WIDTH * uiScale;
-    float scaledItemHeight = ITEM_HEIGHT * uiScale;
-    float scaledPadding = PADDING * uiScale;
-    
-    const float baseFontSize = 1.8f; // Increased base font size for calculation, now local
-    float scaledFontSize = baseFontSize * uiScale;
-
-    // Set up orthographic projection for 2D UI
-    glm::mat4 orthoProjection = glm::ortho(0.0f, (float)width, (float)height, 0.0f, -1.0f, 1.0f);
-
-    // Calculate menu height based on the number of items and their spacing
-    float menuHeight = (static_cast<int>(ContextMenuItem::COUNT) * scaledItemHeight) + (static_cast<int>(ContextMenuItem::COUNT) - 1) * (scaledPadding / 2) + scaledPadding * 2;
-
-    // Refined alignment: Initially center the menu around the mouse click
-    float menuDrawX = m_contextMenuX - (scaledMenuWidth / 2.0f);
-    float menuDrawY = m_contextMenuY - (menuHeight / 2.0f);
-
-    // Now apply boundary checks to keep the menu within screen
-    if (menuDrawX + scaledMenuWidth + scaledPadding > width)
-        menuDrawX = width - scaledMenuWidth - scaledPadding;
-    if (menuDrawY + menuHeight + scaledPadding > height)
-        menuDrawY = height - menuHeight - scaledPadding;
-    if (menuDrawX < scaledPadding)
-        menuDrawX = scaledPadding;
-    if (menuDrawY < scaledPadding)
-        menuDrawY = scaledPadding;
-
-    // Menu background
-    uiRenderer->drawQuad(menuDrawX, menuDrawY, scaledMenuWidth, menuHeight, glm::vec4(0.2f, 0.2f, 0.2f, 0.8f), orthoProjection);
-
-    // Menu items
-    float currentItemY = menuDrawY + scaledPadding;
-
-    // Helper lambda to draw items to reduce repetition
-    auto drawItem = [&](const std::string &text)
+    // If ImGui is capturing the mouse, do not process camera scroll
+    if (ImGui::GetIO().WantCaptureMouse)
     {
-        uiRenderer->drawQuad(menuDrawX + scaledPadding, currentItemY, scaledMenuWidth - 2 * scaledPadding, scaledItemHeight, glm::vec4(0.4f, 0.4f, 0.4f, 1.0f), orthoProjection);
-
-        // Centering text vertically in the item
-        float textY = currentItemY + scaledItemHeight / 2 - (scaledFontSize * 16 / 2);
-        textRenderer->renderText(text, menuDrawX + scaledPadding + (5.0f * uiScale), textY, scaledFontSize, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), orthoProjection);
-
-        currentItemY += scaledItemHeight + scaledPadding / 2;
-    };
-
-    drawItem("Toggle Lighting (L)");
-    drawItem("Toggle Edges (V)");
-    drawItem("Toggle Perspective (P)");
-    drawItem("Toggle Background (B)");
-    drawItem("Toggle Axes (C)");
-    drawItem("Auto-center Model (A)");
-    drawItem("Import Model (I)");
+        return;
+    }
+    camera.ProcessMouseScroll(yoffset);
 }
 
 void Viewer::onMouseButton(int button, int action, double xpos, double ypos)
 {
-    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+    // If ImGui is capturing the mouse, do not process camera related mouse button events
+    if (ImGui::GetIO().WantCaptureMouse)
     {
-        m_showContextMenu = !m_showContextMenu; // Toggle menu visibility
-        if (m_showContextMenu)
-        {
-            m_contextMenuX = static_cast<float>(xpos);
-            m_contextMenuY = static_cast<float>(ypos);
-            // DEBUG: Print original mouse click position
-            std::cout << "Original Mouse Click Pos: X=" << m_contextMenuX << ", Y=" << m_contextMenuY << std::endl;
-        }
+        return;
     }
-    else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-    {
-        if (m_showContextMenu)
-        {
-            float uiScale = getUiScale();
-            float scaledMenuWidth = MENU_WIDTH * uiScale;
-            float scaledItemHeight = ITEM_HEIGHT * uiScale;
-            float scaledPadding = PADDING * uiScale;
-        
-            // Check if a menu item was clicked
-            float menuHeight = (static_cast<int>(ContextMenuItem::COUNT) * scaledItemHeight) + (static_cast<int>(ContextMenuItem::COUNT) - 1) * (scaledPadding / 2) + scaledPadding * 2;
-        
-            // Use the same alignment logic as in drawContextMenu
-            float menuDrawX = m_contextMenuX - (scaledMenuWidth / 2.0f);
-            float menuDrawY = m_contextMenuY - (menuHeight / 2.0f);
-        
-            if (menuDrawX + scaledMenuWidth + scaledPadding > width)
-                menuDrawX = width - scaledMenuWidth - scaledPadding;
-            if (menuDrawY + menuHeight + scaledPadding > height)
-                menuDrawY = height - menuHeight - scaledPadding;
-            if (menuDrawX < scaledPadding)
-                menuDrawX = scaledPadding;
-            if (menuDrawY < scaledPadding)
-                menuDrawY = scaledPadding;
-        
-            // DEBUG: Print menu position during hit testing
-            std::cout << "Hit Test Menu Draw X: " << menuDrawX << ", Y: " << menuDrawY << std::endl;
-            std::cout << "Click position (xpos,ypos): " << xpos << ", " << ypos << std::endl;
-        
-            // Convert ypos to match OpenGL's bottom-left origin if necessary for hit testing
-            float clickY = static_cast<float>(height) - ypos; 
-        
-            float currentItemY = menuDrawY + scaledPadding;
-        
-            // Updated hit test function
-            auto isClicked = [&](float itemY)
-            {
-                float itemXMin = menuDrawX + scaledPadding;
-                float itemXMax = menuDrawX + scaledMenuWidth - scaledPadding;
-                float itemYMin = itemY;
-                float itemYMax = itemY + scaledItemHeight;
-                return (xpos >= itemXMin && xpos <= itemXMax && clickY >= itemYMin && clickY <= itemYMax);
-            };
-        
-            // Check clicks
-            if (isClicked(currentItemY))
-            {
-                m_lightingEnabled = !m_lightingEnabled;
-                std::cout << "Toggle Lighting" << std::endl;
-            }
-            currentItemY += scaledItemHeight + scaledPadding / 2;
-        
-            // Item: Toggle Edges
-            if (isClicked(currentItemY))
-            {
-                switch (m_modelViewMode)
-                {
-                case ModelViewMode::Shaded:
-                    m_modelViewMode = ModelViewMode::Wireframe;
-                    std::cout << "Toggle Edges: Wireframe" << std::endl;
-                    break;
-                case ModelViewMode::Wireframe:
-                    m_modelViewMode = ModelViewMode::ShadedWithEdges;
-                    std::cout << "Toggle Edges: Shaded with Feature Edges" << std::endl;
-                    break;
-                case ModelViewMode::ShadedWithEdges:
-                    m_modelViewMode = ModelViewMode::Shaded;
-                    std::cout << "Toggle Edges: Shaded" << std::endl;
-                    break;
-                }
-            }
-            currentItemY += scaledItemHeight + scaledPadding / 2;
-        
-            // Item: Toggle Perspective
-            if (isClicked(currentItemY))
-            {
-                usePerspective = !usePerspective;
-                std::cout << "Toggle Perspective: " << (usePerspective ? "Perspective" : "Orthographic") << std::endl;
-            }
-            currentItemY += scaledItemHeight + scaledPadding / 2;
-        
-            // Item: Toggle Background Theme
-            if (isClicked(currentItemY))
-            {
-                setBackgroundTheme(!m_isDarkTheme);
-                std::cout << "Toggle Background: " << (m_isDarkTheme ? "Dark" : "Light") << std::endl;
-            }
-            currentItemY += scaledItemHeight + scaledPadding / 2;
-        
-            // Item: Toggle Axes Widget
-            if (isClicked(currentItemY))
-            {
-                m_showAxesWidget = !m_showAxesWidget;
-                std::cout << "Toggle Axes Widget Visible: " << (m_showAxesWidget ? "true" : "false") << std::endl;
-            }
-            currentItemY += scaledItemHeight + scaledPadding / 2;
-        
-            // Item: Auto-center Model
-            if (isClicked(currentItemY))
-            {
-                autoCenterAndOrientModel();
-                std::cout << "Auto-centered and oriented model." << std::endl;
-            }
-            currentItemY += scaledItemHeight + scaledPadding / 2;
-        
-            // Item: Import Model
-            if (isClicked(currentItemY))
-            {
-                char const *lTheOpenFileName;
-                char const *lFilterPatterns[2] = {"*.obj", "*.stl"};
-        
-                lTheOpenFileName = tinyfd_openFileDialog(
-                    "Open 3D Model", "", 2, lFilterPatterns, "3D Model Files (*.obj, *.stl)", 0);
-        
-                if (lTheOpenFileName)
-                {
-                    std::string filePath(lTheOpenFileName);
-                    loadModel(filePath);
-                    std::cout << "Loaded model: " << filePath << std::endl;
-                }
-                else
-                {
-                    std::cout << "No file selected." << std::endl;
-                }
-            }
-            currentItemY += scaledItemHeight + scaledPadding / 2;
-        
-            m_showContextMenu = false; // Dismiss menu after selection
-        }
-        firstMouse = true; // Reset firstMouse to avoid jump when orbiting after menu close
-    }
+
+    // Original mouse button handling for camera.
+    // For context menu, ImGui handles the right-click implicitly with BeginPopupContextWindow.
 }
