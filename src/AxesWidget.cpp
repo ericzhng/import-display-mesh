@@ -178,8 +178,8 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
         {
             if (data.axisEnum == Axis::X_NEG || data.axisEnum == Axis::Y_NEG || data.axisEnum == Axis::Z_NEG)
             {
-                glm::vec4 transparentCircleColor = glm::vec4(data.axisColor.r, data.axisColor.g, data.axisColor.b, 0.4f);
-                uiRenderer->drawCircle(data.screenPos.x, data.screenPos.y, labelCircleRadius + 1.0f, transparentCircleColor, orthoProjection);
+                glm::vec3 lighterRgb = glm::mix(glm::vec3(data.axisColor), glm::vec3(1.0f), 0.3f); // Blend with white to make it lighter
+                glm::vec4 transparentCircleColor = glm::vec4(lighterRgb, 0.5f);
                 uiRenderer->drawCircle(data.screenPos.x, data.screenPos.y, labelCircleRadius, transparentCircleColor, orthoProjection);
             }
             else // Positive axes remain opaque
