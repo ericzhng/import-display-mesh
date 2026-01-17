@@ -545,15 +545,30 @@ void Viewer::render()
             ImGui::Checkbox("Use Custom Aspect Ratio", &m_useCustomAspectRatio);
             if (!prevUseCustomAspectRatio && m_useCustomAspectRatio)
             {
-                // If custom AR was just enabled, set m_customAspectRatio to the current window AR
-                m_customAspectRatio = m_lastWindowAspectRatio;
+                // If custom AR was just enabled, set m_customAspectRatio to the current EFFECTIVE rendering area AR
+                int effectiveHeight = height;
+                if (m_showSummaryWindow)
+                {
+                    effectiveHeight -= static_cast<int>(m_summaryWindowHeight);
+                }
+                if (effectiveHeight > 0)
+                { // Avoid division by zero
+                    m_customAspectRatio = static_cast<float>(width) / effectiveHeight;
+                }
+                else
+                {
+                    m_customAspectRatio = 1.0f; // Default to 1:1 if effective height is zero or less
+                }
             }
 
             // Aspect Ratio slider, only editable when m_useCustomAspectRatio is true
             float currentSliderAspectRatio = m_customAspectRatio;
             if (!m_useCustomAspectRatio)
             {
-                currentSliderAspectRatio = m_lastWindowAspectRatio;
+                // Calculate the effective aspect ratio for display on the slider
+                // when custom aspect ratio is not in use.
+                // This should reflect the aspect ratio of the actual rendering viewport.
+                currentSliderAspectRatio = static_cast<float>(mainRenderWidth) / mainRenderHeight;
             }
 
             ImGui::BeginDisabled(!m_useCustomAspectRatio); // Disable slider if not using custom AR
