@@ -68,6 +68,7 @@ private:
     float m_ambientStrength;                               // New: To control ambient light strength
     bool m_showAxesWidget = true;                          // New: To toggle axes widget visibility
     bool m_showDebugWindow = false;                        // New: To toggle debug window visibility
+    bool m_showCameraWindow = false;                       // New: To toggle camera window visibility
 
     // Camera Animation State
     bool m_isAnimatingCamera = false;

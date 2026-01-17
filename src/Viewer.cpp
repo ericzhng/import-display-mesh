@@ -365,6 +365,10 @@ void Viewer::render()
             {
                 m_showDebugWindow = !m_showDebugWindow;
             }
+            if (ImGui::MenuItem("Toggle Camera Window (T)", nullptr, m_showCameraWindow))
+            {
+                m_showCameraWindow = !m_showCameraWindow;
+            }
             ImGui::EndPopup();
         }
 
@@ -379,13 +383,36 @@ void Viewer::render()
             ImGui::Text("Right:    (%.2f, %.2f, %.2f)", camera.GetRight().x, camera.GetRight().y, camera.GetRight().z);
             ImGui::Text("Radius:   %.2f", camera.GetRadius());
 
-            ImGui::Separator();
-            ImGui::Text("Theme");
-            const char *items[] = {"Default", "Light", "Dark"};
-            static int current_item = (int)g_currentThemeOption;
-            if (ImGui::Combo("##theme_combo", &current_item, items, IM_ARRAYSIZE(items)))
+            ImGui::End();
+        }
+
+        // 6. ImGui: Camera Control Window
+        if (m_showCameraWindow)
+        {
+            ImGui::Begin("Camera Control", &m_showCameraWindow);
+
+            // Get current camera state
+            glm::vec3 currentPosition = camera.GetPosition();
+            glm::vec3 currentTarget = camera.GetTarget();
+            glm::vec3 currentUp = camera.GetUp();
+
+            // Create temporary buffers for ImGui widgets
+            float position[3] = {currentPosition.x, currentPosition.y, currentPosition.z};
+            float target[3] = {currentTarget.x, currentTarget.y, currentTarget.z};
+
+            bool positionChanged = ImGui::InputFloat3("Position", position, "%.3f");
+            bool targetChanged = ImGui::InputFloat3("Target", target, "%.3f");
+
+            if (positionChanged || targetChanged)
             {
-                setCurrentTheme((ThemeOption)current_item);
+                camera.SetPositionAndTarget(glm::vec3(position[0], position[1], position[2]),
+                                            glm::vec3(target[0], target[1], target[2]),
+                                            currentUp); // Preserve the current 'up' vector
+            }
+
+            if (ImGui::Button("Reset View"))
+            {
+                autoCenterAndOrientModel();
             }
 
             ImGui::End();
@@ -486,6 +513,11 @@ void Viewer::onKey(int key, int action)
     {
         m_showDebugWindow = !m_showDebugWindow;
         // std::cout << "D key pressed. Debug Window Visible: " << (m_showDebugWindow ? "true" : "false") << std::endl;
+    }
+
+    if (key == GLFW_KEY_T && action == GLFW_PRESS)
+    {
+        m_showCameraWindow = !m_showCameraWindow;
     }
 }
 
