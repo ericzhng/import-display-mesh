@@ -20,25 +20,11 @@ AxesWidget::~AxesWidget()
 void AxesWidget::init()
 {
     float axesVertices[] = {
-        // Main Lines
-        0.0f, 0.0f, 0.0f, 0.7f, 0.0f, 0.0f, // X
-        0.0f, 0.0f, 0.0f, 0.0f, 0.7f, 0.0f, // Y
-        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.7f, // Z
-
-        // X Arrowhead (tip 0.7f, base 0.6f)
-        0.7f, 0.0f, 0.0f, 0.6f, 0.05f, 0.0f,
-        0.7f, 0.0f, 0.0f, 0.6f, -0.05f, 0.0f,
-        0.7f, 0.0f, 0.0f, 0.6f, 0.0f, 0.05f,
-
-        // Y Arrowhead (tip 0.7f, base 0.6f)
-        0.0f, 0.7f, 0.0f, 0.05f, 0.6f, 0.0f,
-        0.0f, 0.7f, 0.0f, -0.05f, 0.6f, 0.0f,
-        0.0f, 0.7f, 0.0f, 0.0f, 0.6f, 0.05f,
-
-        // Z Arrowhead (tip 0.7f, base 0.6f)
-        0.0f, 0.0f, 0.7f, 0.05f, 0.0f, 0.6f,
-        0.0f, 0.0f, 0.7f, -0.05f, 0.0f, 0.6f,
-        0.0f, 0.0f, 0.7f, 0.0f, 0.05f, 0.6f};
+        // Main Lines (from origin to 0.7f along each axis)
+        0.0f, 0.0f, 0.0f, 0.7f, 0.0f, 0.0f, // X-axis (red)
+        0.0f, 0.0f, 0.0f, 0.0f, 0.7f, 0.0f, // Y-axis (green)
+        0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.7f  // Z-axis (blue)
+    };
 
     glGenVertexArrays(1, &axesVAO);
     glGenBuffers(1, &axesVBO);
@@ -97,15 +83,12 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
 
     shader.setVec4("objectColor", glm::vec4(1.0f, 0.2f, 0.32f, 1.0f)); // X Axis (Red-ish)
     glDrawArrays(GL_LINES, 0, 2);
-    glDrawArrays(GL_TRIANGLES, 6, 6);
 
     shader.setVec4("objectColor", glm::vec4(0.54f, 0.86f, 0.0f, 1.0f)); // Y Axis (Green-ish)
     glDrawArrays(GL_LINES, 2, 2);
-    glDrawArrays(GL_TRIANGLES, 12, 6);
 
     shader.setVec4("objectColor", glm::vec4(0.15f, 0.56f, 1.0f, 1.0f)); // Z Axis (Blue-ish)
     glDrawArrays(GL_LINES, 4, 2);
-    glDrawArrays(GL_TRIANGLES, 18, 6);
 
     // 4. Draw 2D Labels (X, Y, Z in circles)
     glDisable(GL_DEPTH_TEST); // Ensure labels are always on top
