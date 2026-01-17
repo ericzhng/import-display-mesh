@@ -135,9 +135,18 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
         // Draw background circle (always, but with potentially transparent color)
         if (uiRenderer)
         {
-            glm::vec4 circleColor = (axisEnum == Axis::X_NEG || axisEnum == Axis::Y_NEG || axisEnum == Axis::Z_NEG) ? glm::vec4(axisColor.r, axisColor.g, axisColor.b, 0.0f) : // Transparent for negative axes
-                                        glm::vec4(axisColor.r, axisColor.g, axisColor.b, 1.0f);                                                                                // Opaque for positive axes
-            uiRenderer->drawCircle(labelX, labelY, labelCircleRadius, circleColor, orthoProjection);
+            if (axisEnum == Axis::X_NEG || axisEnum == Axis::Y_NEG || axisEnum == Axis::Z_NEG)
+            {
+                // Draw outer circle for the edge
+                uiRenderer->drawCircle(labelX, labelY, labelCircleRadius + 1.0f, glm::vec4(axisColor.r, axisColor.g, axisColor.b, 1.0f), orthoProjection);
+                // Draw inner (fill) circle as transparent
+                uiRenderer->drawCircle(labelX, labelY, labelCircleRadius, glm::vec4(1.0f, 1.0f, 1.0f, 0.0f), orthoProjection);
+            }
+            else // Positive axes remain opaque
+            {
+                glm::vec4 circleColor = glm::vec4(axisColor.r, axisColor.g, axisColor.b, 1.0f);
+                uiRenderer->drawCircle(labelX, labelY, labelCircleRadius, circleColor, orthoProjection);
+            }
         }
 
         // Draw text label (only for positive axes, or if a label is provided for some reason)
