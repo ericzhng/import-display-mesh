@@ -20,7 +20,7 @@
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
 
-class Viewer : public IEventHandler
+class Viewer : public IEventHandler, public IAxesWidgetListener
 {
 public:
     Viewer(int width, int height);
@@ -38,6 +38,9 @@ public:
     void onMouseButton(int button, int action, double xpos, double ypos) override;
     void setPerspective(bool enable) { usePerspective = enable; }
     void setBackgroundTheme(bool isDarkTheme);
+
+    // IAxesWidgetListener implementation
+    void OnAxesWidgetClick(Axis axis) override;
 
 private:
     int width, height;

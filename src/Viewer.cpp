@@ -19,7 +19,7 @@ Viewer::Viewer(int width, int height)
 {
     background = std::make_unique<Background>();
     uiRenderer = std::make_unique<UiRenderer>();                                // Initialize UiRenderer
-    axesWidget = std::make_unique<AxesWidget>(width, height, uiRenderer.get()); // Initialize AxesWidget with screen dimensions and uiRenderer
+    axesWidget = std::make_unique<AxesWidget>(width, height, uiRenderer.get(), this); // Initialize AxesWidget with screen dimensions, uiRenderer, and listener
     textRenderer = std::make_unique<TextRenderer>(width, height);               // Initialize TextRenderer
 }
 
@@ -607,6 +607,64 @@ void Viewer::render()
     }
 }
 
+void Viewer::OnAxesWidgetClick(Axis axis)
+{
+    glm::vec3 modelCenter = glm::vec3(0.0f);
+    float distance = camera.GetRadius(); // Use current camera radius as a base distance
+
+    if (model)
+    {
+        modelCenter = model->GetCenter();
+        glm::vec3 modelSize = model->GetSize();
+        float maxDim = glm::max(glm::max(modelSize.x, modelSize.y), modelSize.z);
+        float fovRadians = glm::radians(camera.GetZoom());
+        distance = (maxDim / 2.0f) / glm::tan(fovRadians / 2.0f);
+        distance *= 1.5f; // Add buffer
+    }
+
+    m_cameraAnimStartPosition = camera.GetPosition();
+    m_cameraAnimStartTarget = camera.GetTarget();
+    m_cameraAnimStartWorldUp = camera.GetUp();
+
+    glm::vec3 targetCameraPosition;
+    glm::vec3 targetWorldUp = glm::vec3(0.0f, 1.0f, 0.0f); // Default to Y up
+
+    switch (axis)
+    {
+    case Axis::X_POS:
+        targetCameraPosition = modelCenter + glm::vec3(distance, 0.0f, 0.0f);
+        targetWorldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+        break;
+    case Axis::X_NEG:
+        targetCameraPosition = modelCenter + glm::vec3(-distance, 0.0f, 0.0f);
+        targetWorldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+        break;
+    case Axis::Y_POS:
+        targetCameraPosition = modelCenter + glm::vec3(0.0f, distance, 0.0f);
+        targetWorldUp = glm::vec3(0.0f, 0.0f, 1.0f); // Z-axis up for top view (conventional for many 3D apps)
+        break;
+    case Axis::Y_NEG:
+        targetCameraPosition = modelCenter + glm::vec3(0.0f, -distance, 0.0f);
+        targetWorldUp = glm::vec3(0.0f, 0.0f, -1.0f); // -Z-axis up for bottom view
+        break;
+    case Axis::Z_POS:
+        targetCameraPosition = modelCenter + glm::vec3(0.0f, 0.0f, distance);
+        targetWorldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+        break;
+    case Axis::Z_NEG:
+        targetCameraPosition = modelCenter + glm::vec3(0.0f, 0.0f, -distance);
+        targetWorldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+        break;
+    }
+
+    m_cameraAnimEndPosition = targetCameraPosition;
+    m_cameraAnimEndTarget = modelCenter;
+    m_cameraAnimEndWorldUp = targetWorldUp;
+
+    m_isAnimatingCamera = true;
+    m_animationTime = 0.0f;
+}
+
 void Viewer::onResize(int w, int h)
 {
     width = w;
@@ -616,7 +674,7 @@ void Viewer::onResize(int w, int h)
     // Update TextRenderer and AxesWidget with new screen dimensions
     // Re-initialize unique_ptrs to recreate objects with new dimensions
     textRenderer = std::make_unique<TextRenderer>(width, height);
-    axesWidget = std::make_unique<AxesWidget>(width, height, uiRenderer.get());
+    axesWidget = std::make_unique<AxesWidget>(width, height, uiRenderer.get(), this);
 }
 
 void Viewer::onKey(int key, int action)
@@ -756,6 +814,18 @@ void Viewer::onMouseButton(int button, int action, double xpos, double ypos)
     if (ImGui::GetIO().WantCaptureMouse)
     {
         return;
+    }
+
+    // Convert mouse ypos to OpenGL's bottom-up coordinate system for AxesWidget
+    double opengl_ypos = height - ypos;
+
+    // Check if AxesWidget handled the mouse button event
+    if (axesWidget && m_showAxesWidget)
+    {
+        if (axesWidget->OnMouseButton(xpos, opengl_ypos, button, action))
+        {
+            return; // Event handled by AxesWidget, do not process further
+        }
     }
 
     // Original mouse button handling for camera.
