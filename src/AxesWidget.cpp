@@ -3,6 +3,7 @@
 #include <GLFW/glfw3.h> // Required for GLFW_MOUSE_BUTTON_LEFT and GLFW_PRESS
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp> // For glm::value_ptr
+#include <algorithm> // Required for std::sort
 
 AxesWidget::AxesWidget(int screenWidth, int screenHeight, UiRenderer *uiRenderer, IAxesWidgetListener *listener)
     : axesVAO(0), axesVBO(0), uiRenderer(uiRenderer), m_listener(listener)
@@ -104,9 +105,23 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
     float labelCircleRadius = 8.0f; // Smaller radius for the background circle
     float fontSize = 0.3f;          // Larger scale for the text labels
 
-    auto drawAxisLabel = [&](glm::vec3 axisDir, const std::string &label, glm::vec4 axisColor, Axis axisEnum)
-    {
-        glm::vec4 tipClip = widgetProjection * widgetView * glm::vec4(axisDir, 1.0f);
+    struct LabelDrawData {
+        glm::vec3 axisDir;
+        std::string labelText;
+        glm::vec4 axisColor;
+        Axis axisEnum;
+        float depth; // Raw Z-component in camera space (positive is further away)
+        glm::vec2 screenPos; // Store computed screen position for drawing and hitbox
+    };
+
+    std::vector<LabelDrawData> labelsToDraw;
+
+    std::cout << "--- AxesWidget Label Depths (before sort) ---" << std::endl;
+    // Helper to populate label data
+    auto collectLabelData = [&](glm::vec3 dir, const std::string &txt, glm::vec4 color, Axis aEnum) {
+        glm::vec4 tipCameraSpace = widgetView * glm::vec4(dir, 1.0f);
+        std::cout << "Axis: " << static_cast<int>(aEnum) << ", World Dir: (" << dir.x << ", " << dir.y << ", " << dir.z << ")" << ", CamZ: " << tipCameraSpace.z << std::endl;
+        glm::vec4 tipClip = widgetProjection * tipCameraSpace;
         glm::vec2 tipScreenNDC = glm::vec2(tipClip) / tipClip.w;
 
         glm::vec2 dir2D = tipScreenNDC - centerScreenNDC;
@@ -116,71 +131,74 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
         else
             dir2D = glm::vec2(0.0f); // Avoid division by zero if tip is at center
 
-        // Convert tipScreenNDC to widget space.
         float baseLabelX_widgetSpace = (tipScreenNDC.x * 0.5f + 0.5f) * widgetSize;
         float baseLabelY_widgetSpace = (tipScreenNDC.y * 0.5f + 0.5f) * widgetSize;
 
-        // Add a small fixed pixel offset outwards from the projected tip.
-        float pixelOffset = 1.0f; // Fixed pixel amount for offset (reduced)
-        float labelX = baseLabelX_widgetSpace + dir2D.x * pixelOffset;
-        float labelY = baseLabelY_widgetSpace + dir2D.y * pixelOffset;
+        float pixelOffset = 1.0f;
+        glm::vec2 finalScreenPos(baseLabelX_widgetSpace + dir2D.x * pixelOffset, baseLabelY_widgetSpace + dir2D.y * pixelOffset);
 
-        // Store hitbox information (convert labelX, labelY to normalized widget-space)
+        // Store hitbox information
         AxisLabelHitbox hitbox;
-        hitbox.axis = axisEnum;
-        hitbox.center = glm::vec2((labelX / (float)widgetSize) * 2.0f - 1.0f, (labelY / (float)widgetSize) * 2.0f - 1.0f);
-        hitbox.radius = (labelCircleRadius / (float)widgetSize) * 2.0f; // Radius in normalized widget-space
+        hitbox.axis = aEnum;
+        hitbox.center = glm::vec2((finalScreenPos.x / (float)widgetSize) * 2.0f - 1.0f, (finalScreenPos.y / (float)widgetSize) * 2.0f - 1.0f);
+        hitbox.radius = (labelCircleRadius / (float)widgetSize) * 2.0f;
         m_labelHitboxes.push_back(hitbox);
 
-        // Draw background circle (always, but with potentially transparent color)
+        labelsToDraw.push_back({dir, txt, color, aEnum, tipCameraSpace.z, finalScreenPos}); // Use raw tipCameraSpace.z for depth
+    };
+
+    // Collect all label data
+    collectLabelData(glm::vec3(0.7f, 0.0f, 0.0f), "X", glm::vec4(1.0f, 0.2f, 0.32f, 1.0f), Axis::X_POS);
+    collectLabelData(glm::vec3(-0.7f, 0.0f, 0.0f), "", glm::vec4(1.0f, 0.2f, 0.32f, 1.0f), Axis::X_NEG);
+    collectLabelData(glm::vec3(0.0f, 0.7f, 0.0f), "Y", glm::vec4(0.54f, 0.86f, 0.0f, 1.0f), Axis::Y_POS);
+    collectLabelData(glm::vec3(0.0f, -0.7f, 0.0f), "", glm::vec4(0.54f, 0.86f, 0.0f, 1.0f), Axis::Y_NEG);
+    collectLabelData(glm::vec3(0.0f, 0.0f, 0.7f), "Z", glm::vec4(0.15f, 0.56f, 1.0f, 1.0f), Axis::Z_POS);
+    collectLabelData(glm::vec3(0.0f, 0.0f, -0.7f), "", glm::vec4(0.15f, 0.56f, 1.0f, 1.0f), Axis::Z_NEG);
+    std::cout << "------------------------------------------" << std::endl;
+
+    // Sort labels by depth (farthest first, so closest are drawn last)
+    std::sort(labelsToDraw.begin(), labelsToDraw.end(), [](const LabelDrawData &a, const LabelDrawData &b) {
+        return a.depth < b.depth; // Sort ascending, so smallest Z (closest) first.
+    });
+
+    std::cout << "--- AxesWidget Labels (sorted order) ---" << std::endl;
+    for (const auto& data : labelsToDraw) {
+        std::cout << "Axis: " << static_cast<int>(data.axisEnum) << ", Depth: " << data.depth << std::endl;
+    }
+    std::cout << "------------------------------------------" << std::endl;
+    // Draw sorted labels
+    for (const auto &data : labelsToDraw)
+    {
+        // Draw background circle
         if (uiRenderer)
         {
-            if (axisEnum == Axis::X_NEG || axisEnum == Axis::Y_NEG || axisEnum == Axis::Z_NEG)
+            if (data.axisEnum == Axis::X_NEG || data.axisEnum == Axis::Y_NEG || data.axisEnum == Axis::Z_NEG)
             {
-                // Draw outer circle for the edge
-                uiRenderer->drawCircle(labelX, labelY, labelCircleRadius + 1.0f, glm::vec4(axisColor.r, axisColor.g, axisColor.b, 1.0f), orthoProjection);
-                // Draw inner (fill) circle as transparent
-                uiRenderer->drawCircle(labelX, labelY, labelCircleRadius, glm::vec4(1.0f, 1.0f, 1.0f, 0.0f), orthoProjection);
+                glm::vec4 transparentCircleColor = glm::vec4(data.axisColor.r, data.axisColor.g, data.axisColor.b, 0.4f);
+                uiRenderer->drawCircle(data.screenPos.x, data.screenPos.y, labelCircleRadius + 1.0f, transparentCircleColor, orthoProjection);
+                uiRenderer->drawCircle(data.screenPos.x, data.screenPos.y, labelCircleRadius, transparentCircleColor, orthoProjection);
             }
             else // Positive axes remain opaque
             {
-                glm::vec4 circleColor = glm::vec4(axisColor.r, axisColor.g, axisColor.b, 1.0f);
-                uiRenderer->drawCircle(labelX, labelY, labelCircleRadius, circleColor, orthoProjection);
+                glm::vec4 circleColor = glm::vec4(data.axisColor.r, data.axisColor.g, data.axisColor.b, 1.0f);
+                uiRenderer->drawCircle(data.screenPos.x, data.screenPos.y, labelCircleRadius, circleColor, orthoProjection);
             }
         }
 
-        // Draw text label (only for positive axes, or if a label is provided for some reason)
-        if (textRenderer && !label.empty() && (axisEnum == Axis::X_POS || axisEnum == Axis::Y_POS || axisEnum == Axis::Z_POS))
+        // Draw text label
+        if (textRenderer && !data.labelText.empty() && (data.axisEnum == Axis::X_POS || data.axisEnum == Axis::Y_POS || data.axisEnum == Axis::Z_POS))
         {
-            // Get actual metrics of the single character label
-            CharacterMetrics charMetrics = textRenderer->getCharacterMetrics(label[0], fontSize);
+            CharacterMetrics charMetrics = textRenderer->getCharacterMetrics(data.labelText[0], fontSize);
             float charWidth = charMetrics.width;
             float charHeight = charMetrics.height;
             float charYBearing = charMetrics.yBearing;
 
-            // Adjust text position to be centered within the circle
-            // labelX, labelY are currently center of the circle in widget-space
-            float textRenderX = labelX - (charWidth * 0.5f);
+            float textRenderX = data.screenPos.x - (charWidth * 0.5f);
+            float textRenderY = data.screenPos.y - charYBearing + (charHeight * 0.5f);
 
-            // Calculate baseline for vertical centering:
-            // labelY (center of circle) - yBearing (offset from baseline to top) + 0.5 * height (half of total glyph bitmap height)
-            float textRenderY = labelY - charYBearing + (charHeight * 0.5f);
-
-            textRenderer->renderText(label, textRenderX, textRenderY, fontSize, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), orthoProjection); // Black text
+            textRenderer->renderText(data.labelText, textRenderX, textRenderY, fontSize, glm::vec4(0.0f, 0.0f, 0.0f, 1.0f), orthoProjection); // Black text
         }
-    };
-
-        drawAxisLabel(glm::vec3(0.7f, 0.0f, 0.0f), "X", glm::vec4(1.0f, 0.2f, 0.32f, 1.0f), Axis::X_POS);    // Red-ish
-
-        drawAxisLabel(glm::vec3(-0.7f, 0.0f, 0.0f), "", glm::vec4(1.0f, 0.2f, 0.32f, 1.0f), Axis::X_NEG); // Transparent Red-ish
-
-        drawAxisLabel(glm::vec3(0.0f, 0.7f, 0.0f), "Y", glm::vec4(0.54f, 0.86f, 0.0f, 1.0f), Axis::Y_POS);  // Green-ish
-
-        drawAxisLabel(glm::vec3(0.0f, -0.7f, 0.0f), "", glm::vec4(0.54f, 0.86f, 0.0f, 1.0f), Axis::Y_NEG); // Transparent Green-ish
-
-        drawAxisLabel(glm::vec3(0.0f, 0.0f, 0.7f), "Z", glm::vec4(0.15f, 0.56f, 1.0f, 1.0f), Axis::Z_POS);  // Blue-ish
-
-        drawAxisLabel(glm::vec3(0.0f, 0.0f, -0.7f), "", glm::vec4(0.15f, 0.56f, 1.0f, 1.0f), Axis::Z_NEG); // Transparent Blue-ish
+    }
 
     // Restore state
     glEnable(GL_DEPTH_TEST);

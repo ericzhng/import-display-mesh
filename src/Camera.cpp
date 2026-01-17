@@ -1,5 +1,9 @@
 #include "Camera.h"
 #include <iostream>
+#include <limits> // For std::numeric_limits
+
+// Small epsilon for float comparisons
+const float AXIS_ALIGNMENT_EPSILON = 0.8f; // Dot product threshold for considering alignment
 
 Camera::Camera(glm::vec3 position, glm::vec3 target, glm::vec3 up)
 {
@@ -131,3 +135,37 @@ void Camera::updateCameraVectors()
     Up = glm::normalize(glm::cross(Right, Front));
 }
 
+Axis Camera::GetCurrentViewingAxis() const {
+    // Normalize Front vector for accurate dot product comparison
+    glm::vec3 normalizedFront = glm::normalize(Front);
+    std::cout << "Camera Front: (" << normalizedFront.x << ", " << normalizedFront.y << ", " << normalizedFront.z << ")" << std::endl;
+
+    // Define cardinal axis directions
+    glm::vec3 x_pos_dir = glm::vec3(1.0f, 0.0f, 0.0f);
+    glm::vec3 x_neg_dir = glm::vec3(-1.0f, 0.0f, 0.0f);
+    glm::vec3 y_pos_dir = glm::vec3(0.0f, 1.0f, 0.0f);
+    glm::vec3 y_neg_dir = glm::vec3(0.0f, -1.0f, 0.0f);
+    glm::vec3 z_pos_dir = glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 z_neg_dir = glm::vec3(0.0f, 0.0f, -1.0f);
+
+    float dot_x_pos = glm::dot(normalizedFront, x_pos_dir);
+    float dot_x_neg = glm::dot(normalizedFront, x_neg_dir);
+    float dot_y_pos = glm::dot(normalizedFront, y_pos_dir);
+    float dot_y_neg = glm::dot(normalizedFront, y_neg_dir);
+    float dot_z_pos = glm::dot(normalizedFront, z_pos_dir);
+    float dot_z_neg = glm::dot(normalizedFront, z_neg_dir);
+
+    std::cout << "Dot Products: X+ " << dot_x_pos << ", X- " << dot_x_neg
+              << ", Y+ " << dot_y_pos << ", Y- " << dot_y_neg
+              << ", Z+ " << dot_z_pos << ", Z- " << dot_z_neg << std::endl;
+
+    // Compare dot products to find the closest axis
+    if (dot_x_pos > AXIS_ALIGNMENT_EPSILON) return Axis::X_POS;
+    if (dot_x_neg > AXIS_ALIGNMENT_EPSILON) return Axis::X_NEG;
+    if (dot_y_pos > AXIS_ALIGNMENT_EPSILON) return Axis::Y_POS;
+    if (dot_y_neg > AXIS_ALIGNMENT_EPSILON) return Axis::Y_NEG;
+    if (dot_z_pos > AXIS_ALIGNMENT_EPSILON) return Axis::Z_POS;
+    if (dot_z_neg > AXIS_ALIGNMENT_EPSILON) return Axis::Z_NEG;
+
+    return Axis::NONE; // Not aligned with a primary axis
+}

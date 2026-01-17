@@ -8,6 +8,28 @@
 #include <glm/gtx/quaternion.hpp>
 #include <vector>
 
+// Define Axis enum here, as it's used by Camera and AxesWidget
+enum class Axis {
+    X_POS, X_NEG,
+    Y_POS, Y_NEG,
+    Z_POS, Z_NEG,
+    NONE // Added for cases where camera is not aligned with any primary axis
+};
+
+// Utility function to get the opposite axis
+inline Axis GetAxisOpposite(Axis axis) {
+    switch (axis) {
+        case Axis::X_POS: return Axis::X_NEG;
+        case Axis::X_NEG: return Axis::X_POS;
+        case Axis::Y_POS: return Axis::Y_NEG;
+        case Axis::Y_NEG: return Axis::Y_POS;
+        case Axis::Z_POS: return Axis::Z_NEG;
+        case Axis::Z_NEG: return Axis::Z_POS;
+        case Axis::NONE: return Axis::NONE; // Opposite of NONE is NONE
+    }
+    return Axis::NONE; // Should not be reached
+}
+
 class Camera
 {
 public:
@@ -43,6 +65,9 @@ public:
 
     void SetTarget(glm::vec3 target, float radius);
     void SetPositionAndTarget(glm::vec3 position, glm::vec3 target, glm::vec3 up);
+
+    // New: Get the primary axis the camera is currently looking along
+    Axis GetCurrentViewingAxis() const;
 
 private:
     // Camera Attributes

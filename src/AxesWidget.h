@@ -6,12 +6,7 @@
 #include <memory> // For std::unique_ptr
 #include "TextRenderer.h" // Include TextRenderer
 #include "UiRenderer.h"   // Include UiRenderer
-
-enum class Axis {
-    X_POS, X_NEG,
-    Y_POS, Y_NEG,
-    Z_POS, Z_NEG
-};
+#include "Camera.h"     // Include Camera.h for Axis enum
 
 struct AxisLabelHitbox {
     Axis axis;

@@ -7,6 +7,29 @@
 #include <iostream>
 #include <tinyfiledialogs.h>
 
+// Anonymous namespace for helper functions local to this translation unit
+namespace
+{
+    // Helper to get the absolute cardinal axis (e.g., X_POS, Y_POS, Z_POS for respective axes)
+    Axis getCardinalAxisEnum(Axis a)
+    {
+        switch (a)
+        {
+        case Axis::X_POS:
+        case Axis::X_NEG:
+            return Axis::X_POS; // Represent X-axis by X_POS
+        case Axis::Y_POS:
+        case Axis::Y_NEG:
+            return Axis::Y_POS; // Represent Y-axis by Y_POS
+        case Axis::Z_POS:
+        case Axis::Z_NEG:
+            return Axis::Z_POS; // Represent Z-axis by Z_POS
+        default:
+            return Axis::NONE;
+        }
+    }
+} // end anonymous namespace
+
 Viewer::Viewer(int width, int height)
     : width(width), height(height),
       camera(glm::vec3(10.0f, -10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
@@ -18,9 +41,9 @@ Viewer::Viewer(int width, int height)
       m_customAspectRatio(static_cast<float>(width) / height)
 {
     background = std::make_unique<Background>();
-    uiRenderer = std::make_unique<UiRenderer>();                                // Initialize UiRenderer
+    uiRenderer = std::make_unique<UiRenderer>();                                      // Initialize UiRenderer
     axesWidget = std::make_unique<AxesWidget>(width, height, uiRenderer.get(), this); // Initialize AxesWidget with screen dimensions, uiRenderer, and listener
-    textRenderer = std::make_unique<TextRenderer>(width, height);               // Initialize TextRenderer
+    textRenderer = std::make_unique<TextRenderer>(width, height);                     // Initialize TextRenderer
 }
 
 Viewer::~Viewer()
@@ -136,7 +159,7 @@ void Viewer::render()
         float t = glm::clamp(m_animationTime / m_animationDuration, 0.0f, 1.0f); // Animation progress [0, 1]
 
         // Use smoothstep for smoother animation (optional, linear is fine too)
-        // t = t * t * (3.0f - 2.0f * t);
+        t = t * t * (3.0f - 2.0f * t);
 
         glm::vec3 currentPosition = glm::mix(m_cameraAnimStartPosition, m_cameraAnimEndPosition, t);
         glm::vec3 currentTarget = glm::mix(m_cameraAnimStartTarget, m_cameraAnimEndTarget, t);
@@ -491,9 +514,8 @@ void Viewer::render()
             {
                 valueEdited = true;
                 // If FOV is changed, recalculate Focal Length
-                float fovy_radians = glm::radians(currentFov);
-                m_focalLength = (m_sensorHeight / 2.0f) / glm::tan(fovy_radians / 2.0f);
-                camera.SetZoom(currentFov);
+                float fovy_radians = 2.0f * glm::atan((m_sensorHeight / 2.0f) / m_focalLength);
+                camera.SetZoom(glm::degrees(fovy_radians));
             }
             ImGui::PopItemWidth();
             currentFov = glm::clamp(currentFov, 0.1f, 179.9f); // Clamp FOV for glm::perspective stability
@@ -607,10 +629,40 @@ void Viewer::render()
     }
 }
 
-void Viewer::OnAxesWidgetClick(Axis axis)
+void Viewer::OnAxesWidgetClick(Axis clickedAxis)
 {
+    std::cout << "OnAxesWidgetClick: Initial clicked axis: " << static_cast<int>(clickedAxis) << std::endl;
+    std::cout << "OnAxesWidgetClick: Initial clicked axis (enum): ";
+    switch (clickedAxis)
+    {
+    case Axis::X_POS:
+        std::cout << "X_POS";
+        break;
+    case Axis::X_NEG:
+        std::cout << "X_NEG";
+        break;
+    case Axis::Y_POS:
+        std::cout << "Y_POS";
+        break;
+    case Axis::Y_NEG:
+        std::cout << "Y_NEG";
+        break;
+    case Axis::Z_POS:
+        std::cout << "Z_POS";
+        break;
+    case Axis::Z_NEG:
+        std::cout << "Z_NEG";
+        break;
+    case Axis::NONE:
+        std::cout << "NONE";
+        break;
+    }
+    std::cout << std::endl;
+
     glm::vec3 modelCenter = glm::vec3(0.0f);
     float distance = camera.GetRadius(); // Use current camera radius as a base distance
+
+    std::cout << "OnAxesWidgetClick: Initial camera radius: " << camera.GetRadius() << std::endl;
 
     if (model)
     {
@@ -620,6 +672,63 @@ void Viewer::OnAxesWidgetClick(Axis axis)
         float fovRadians = glm::radians(camera.GetZoom());
         distance = (maxDim / 2.0f) / glm::tan(fovRadians / 2.0f);
         distance *= 1.5f; // Add buffer
+        std::cout << "OnAxesWidgetClick: Model loaded. modelCenter: (" << modelCenter.x << ", " << modelCenter.y << ", " << modelCenter.z << ")" << std::endl;
+        std::cout << "OnAxesWidgetClick: Calculated distance (with buffer): " << distance << std::endl;
+    }
+    else
+    {
+        std::cout << "OnAxesWidgetClick: No model loaded. Using default modelCenter (0,0,0) and camera radius for distance." << std::endl;
+    }
+
+    Axis currentViewingAxis = camera.GetCurrentViewingAxis();
+    std::cout << "OnAxesWidgetClick: Current viewing axis from camera: " << static_cast<int>(currentViewingAxis) << std::endl;
+    std::cout << "OnAxesWidgetClick: Current viewing axis (enum): ";
+    switch (currentViewingAxis)
+    {
+    case Axis::X_POS:
+        std::cout << "X_POS";
+        break;
+    case Axis::X_NEG:
+        std::cout << "X_NEG";
+        break;
+    case Axis::Y_POS:
+        std::cout << "Y_POS";
+        break;
+    case Axis::Y_NEG:
+        std::cout << "Y_NEG";
+        break;
+    case Axis::Z_POS:
+        std::cout << "Z_POS";
+        break;
+    case Axis::Z_NEG:
+        std::cout << "Z_NEG";
+        break;
+    case Axis::NONE:
+        std::cout << "NONE";
+        break;
+    }
+    std::cout << std::endl;
+
+    Axis targetAxis;
+    Axis clickedCardinal = getCardinalAxisEnum(clickedAxis);
+    Axis currentCardinal = getCardinalAxisEnum(currentViewingAxis);
+
+    std::cout << "OnAxesWidgetClick: Clicked cardinal axis: " << static_cast<int>(clickedCardinal) << std::endl;
+    std::cout << "OnAxesWidgetClick: Current cardinal axis: " << static_cast<int>(currentCardinal) << std::endl;
+
+    if (currentViewingAxis != Axis::NONE && clickedCardinal == currentCardinal)
+    {
+        // If the current camera view is aligned with the same cardinal axis as the clicked label,
+        // then toggle the current view (go to its opposite direction).
+        targetAxis = GetAxisOpposite(currentViewingAxis);
+        std::cout << "OnAxesWidgetClick: Current view aligned with clicked cardinal axis. Toggling to opposite of current view: " << static_cast<int>(targetAxis) << std::endl;
+    }
+    else
+    {
+        // If not aligned with the same cardinal axis, or current view is NONE,
+        // just set the view to the clicked axis.
+        targetAxis = clickedAxis;
+        std::cout << "OnAxesWidgetClick: Not aligned with same cardinal axis or current view is NONE. Setting target to clicked axis: " << static_cast<int>(targetAxis) << std::endl;
     }
 
     m_cameraAnimStartPosition = camera.GetPosition();
@@ -627,35 +736,37 @@ void Viewer::OnAxesWidgetClick(Axis axis)
     m_cameraAnimStartWorldUp = camera.GetUp();
 
     glm::vec3 targetCameraPosition;
-    glm::vec3 targetWorldUp = glm::vec3(0.0f, 1.0f, 0.0f); // Default to Y up
+    glm::vec3 targetWorldUp = glm::vec3(0.0f, 1.0f, 0.0f); // Default targetWorldUp for most views is World Y-up
 
-    switch (axis)
+    switch (targetAxis) // Use targetAxis here
     {
     case Axis::X_POS:
         targetCameraPosition = modelCenter + glm::vec3(distance, 0.0f, 0.0f);
-        targetWorldUp = glm::vec3(0.0f, 1.0f, 0.0f);
         break;
     case Axis::X_NEG:
         targetCameraPosition = modelCenter + glm::vec3(-distance, 0.0f, 0.0f);
-        targetWorldUp = glm::vec3(0.0f, 1.0f, 0.0f);
         break;
-    case Axis::Y_POS:
+    case Axis::Y_POS: // Top View
         targetCameraPosition = modelCenter + glm::vec3(0.0f, distance, 0.0f);
-        targetWorldUp = glm::vec3(0.0f, 0.0f, 1.0f); // Z-axis up for top view (conventional for many 3D apps)
+        targetWorldUp = glm::vec3(0.0f, 0.0f, 1.0f); // X-right, +Z up (for Y-up world)
         break;
-    case Axis::Y_NEG:
+    case Axis::Y_NEG: // Bottom View
         targetCameraPosition = modelCenter + glm::vec3(0.0f, -distance, 0.0f);
-        targetWorldUp = glm::vec3(0.0f, 0.0f, -1.0f); // -Z-axis up for bottom view
+        targetWorldUp = glm::vec3(0.0f, 0.0f, 1.0f); // X-right, -Z up (for Y-up world)
         break;
     case Axis::Z_POS:
         targetCameraPosition = modelCenter + glm::vec3(0.0f, 0.0f, distance);
-        targetWorldUp = glm::vec3(0.0f, 1.0f, 0.0f);
         break;
     case Axis::Z_NEG:
         targetCameraPosition = modelCenter + glm::vec3(0.0f, 0.0f, -distance);
-        targetWorldUp = glm::vec3(0.0f, 1.0f, 0.0f);
         break;
+    case Axis::NONE: // Should ideally not be triggered by a click on an axis label
+        std::cout << "OnAxesWidgetClick: Axis::NONE received for targetAxis, returning." << std::endl;
+        return;
     }
+
+    std::cout << "OnAxesWidgetClick: Final Target Camera Position: (" << targetCameraPosition.x << ", " << targetCameraPosition.y << ", " << targetCameraPosition.z << ")" << std::endl;
+    std::cout << "OnAxesWidgetClick: Final Target World Up: (" << targetWorldUp.x << ", " << targetWorldUp.y << ", " << targetWorldUp.z << ")" << std::endl;
 
     m_cameraAnimEndPosition = targetCameraPosition;
     m_cameraAnimEndTarget = modelCenter;
