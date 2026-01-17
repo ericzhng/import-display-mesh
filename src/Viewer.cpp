@@ -71,12 +71,9 @@ void Viewer::loadModel(const std::string &path)
 
     m_modelAnimEndPosition = modelCenter;
     // Start significantly above the model's actual center
-    m_modelAnimStartPosition = modelCenter + glm::vec3(0.0f, maxDim * 10.0f, 0.0f); // 10 times maxDim above
 
-    m_isAnimatingModelDrop = true;
-    m_modelDropTime = 0.0f;
-    m_modelDropDuration = 2.0f;                        // Increase duration to 2 seconds
-    m_currentModelPosition = m_modelAnimStartPosition; // Start at the elevated position
+    m_currentModelPosition = m_modelAnimEndPosition; // Start at the elevated position
+    autoCenterAndOrientModel();
 }
 
 void Viewer::autoCenterAndOrientModel()
@@ -149,24 +146,7 @@ void Viewer::render()
         }
     }
 
-    // Handle model drop animation
-    if (m_isAnimatingModelDrop)
-    {
-        m_modelDropTime += m_deltaTime;
-        float t = glm::clamp(m_modelDropTime / m_modelDropDuration, 0.0f, 1.0f);
 
-        // Smoothstep for model drop (optional)
-        t = t * t * (3.0f - 2.0f * t);
-
-        m_currentModelPosition = glm::mix(m_modelAnimStartPosition, m_modelAnimEndPosition, t);
-
-        if (m_modelDropTime >= m_modelDropDuration)
-        {
-            m_isAnimatingModelDrop = false;
-            m_currentModelPosition = m_modelAnimEndPosition; // Ensure it lands precisely
-            autoCenterAndOrientModel();                      // Trigger camera centering after model drop
-        }
-    }
     // Reset Viewport for main scene
     glViewport(0, 0, width, height);
     // glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // Removed as background is drawn by Background class
@@ -216,7 +196,7 @@ void Viewer::render()
         mainShader->setMat4("view", view);
 
         // Apply model's animated position
-        glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), m_currentModelPosition - m_modelAnimEndPosition);
+        glm::mat4 modelMatrix = glm::mat4(1.0f);
         mainShader->setMat4("model", modelMatrix);
 
         switch (m_modelViewMode)

@@ -90,10 +90,7 @@ private:
     float m_deltaTime = 0.0f;
 
     // Model Drop Animation State
-    bool m_isAnimatingModelDrop = false;
-    float m_modelDropDuration = 1.0f; // Duration of the model drop animation
-    float m_modelDropTime = 0.0f;
-    glm::vec3 m_modelAnimStartPosition; // Starting position (elevated)
+
     glm::vec3 m_modelAnimEndPosition;   // Ending position (actual center)
     glm::vec3 m_currentModelPosition;   // The model's current animated position
 
