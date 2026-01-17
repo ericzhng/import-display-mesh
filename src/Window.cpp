@@ -1,6 +1,7 @@
 #include "Window.h"
 #include <iostream>
 #include <glad/glad.h>
+#include "Style.h"
 
 // Constructor
 Window::Window(int width, int height, const std::string &title)
@@ -68,7 +69,7 @@ void Window::initImGui()
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Multi-Viewport / Platform Windows
 
-    ImGui::StyleColorsDark();
+    setOSFriendlyStyle();
 
     // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
     ImGuiStyle &style = ImGui::GetStyle();

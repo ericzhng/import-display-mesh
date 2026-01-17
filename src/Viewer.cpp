@@ -2,6 +2,7 @@
 #include "Background.h"
 #include "AxesWidget.h"
 #include "TextRenderer.h" // Include TextRenderer
+#include "Style.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
 #include <tinyfiledialogs.h>
@@ -274,7 +275,7 @@ void Viewer::render()
 
         // Setup Dockspace
         ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus | ImGuiWindowFlags_NoBackground;
-        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGuiViewport *viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->Pos);
         ImGui::SetNextWindowSize(viewport->Size);
         ImGui::SetNextWindowViewport(viewport->ID);
@@ -316,9 +317,24 @@ void Viewer::render()
             {
                 usePerspective = !usePerspective;
             }
-            if (ImGui::MenuItem("Toggle Background (B)", nullptr, m_isDarkTheme))
+            if (ImGui::BeginMenu("Theme"))
             {
-                setBackgroundTheme(!m_isDarkTheme);
+                if (ImGui::MenuItem("Default", nullptr, g_currentThemeOption == ThemeOption::Default))
+                {
+                    setCurrentTheme(ThemeOption::Default);
+                    setBackgroundTheme(g_isDarkMode);
+                }
+                if (ImGui::MenuItem("Light", nullptr, g_currentThemeOption == ThemeOption::Light))
+                {
+                    setCurrentTheme(ThemeOption::Light);
+                    setBackgroundTheme(g_isDarkMode);
+                }
+                if (ImGui::MenuItem("Dark", nullptr, g_currentThemeOption == ThemeOption::Dark))
+                {
+                    setCurrentTheme(ThemeOption::Dark);
+                    setBackgroundTheme(g_isDarkMode);
+                }
+                ImGui::EndMenu();
             }
             if (ImGui::MenuItem("Toggle Axes (C)", nullptr, m_showAxesWidget))
             {
@@ -362,6 +378,16 @@ void Viewer::render()
             ImGui::Text("Front:    (%.2f, %.2f, %.2f)", camera.GetFront().x, camera.GetFront().y, camera.GetFront().z);
             ImGui::Text("Right:    (%.2f, %.2f, %.2f)", camera.GetRight().x, camera.GetRight().y, camera.GetRight().z);
             ImGui::Text("Radius:   %.2f", camera.GetRadius());
+
+            ImGui::Separator();
+            ImGui::Text("Theme");
+            const char *items[] = {"Default", "Light", "Dark"};
+            static int current_item = (int)g_currentThemeOption;
+            if (ImGui::Combo("##theme_combo", &current_item, items, IM_ARRAYSIZE(items)))
+            {
+                setCurrentTheme((ThemeOption)current_item);
+            }
+
             ImGui::End();
         }
     }
@@ -383,7 +409,7 @@ void Viewer::onKey(int key, int action)
     if (key == GLFW_KEY_P && action == GLFW_PRESS)
     {
         usePerspective = !usePerspective;
-        std::cout << "P key pressed. Perspective Mode Enabled: " << (usePerspective ? "true" : "false") << std::endl;
+        // std::cout << "P key pressed. Perspective Mode Enabled: " << (usePerspective ? "true" : "false") << std::endl;
     }
 
     if (key == GLFW_KEY_V && action == GLFW_PRESS)
@@ -392,15 +418,15 @@ void Viewer::onKey(int key, int action)
         {
         case ModelViewMode::Shaded:
             m_modelViewMode = ModelViewMode::Wireframe;
-            std::cout << "V key pressed. Model View Mode: Wireframe" << std::endl;
+            // std::cout << "V key pressed. Model View Mode: Wireframe" << std::endl;
             break;
         case ModelViewMode::Wireframe:
             m_modelViewMode = ModelViewMode::ShadedWithEdges;
-            std::cout << "V key pressed. Model View Mode: Shaded with Feature Edges" << std::endl;
+            // std::cout << "V key pressed. Model View Mode: Shaded with Feature Edges" << std::endl;
             break;
         case ModelViewMode::ShadedWithEdges:
             m_modelViewMode = ModelViewMode::Shaded;
-            std::cout << "V key pressed. Model View Mode: Shaded" << std::endl;
+            // std::cout << "V key pressed. Model View Mode: Shaded" << std::endl;
             break;
         }
     }
@@ -408,25 +434,26 @@ void Viewer::onKey(int key, int action)
     if (key == GLFW_KEY_L && action == GLFW_PRESS)
     {
         m_lightingEnabled = !m_lightingEnabled; // Toggle lighting with 'L' key
-        std::cout << "L key pressed. Lighting Enabled: " << (m_lightingEnabled ? "true" : "false") << std::endl;
+        // std::cout << "L key pressed. Lighting Enabled: " << (m_lightingEnabled ? "true" : "false") << std::endl;
     }
 
     if (key == GLFW_KEY_C && action == GLFW_PRESS)
     {
         m_showAxesWidget = !m_showAxesWidget;
-        std::cout << "C key pressed. Axes Widget Visible: " << (m_showAxesWidget ? "true" : "false") << std::endl;
+        // std::cout << "C key pressed. Axes Widget Visible: " << (m_showAxesWidget ? "true" : "false") << std::endl;
     }
 
     if (key == GLFW_KEY_A && action == GLFW_PRESS) // New: Auto-center and orient with 'A' key
     {
         autoCenterAndOrientModel();
-        std::cout << "A key pressed. Auto-centered and oriented model." << std::endl;
+        // std::cout << "A key pressed. Auto-centered and oriented model." << std::endl;
     }
 
-    if (key == GLFW_KEY_B && action == GLFW_PRESS) // New: Toggle background theme with 'B' key
+    if (key == GLFW_KEY_B && action == GLFW_PRESS)
     {
-        setBackgroundTheme(!m_isDarkTheme);
-        std::cout << "B key pressed. Dark theme enabled: " << (m_isDarkTheme ? "true" : "false") << std::endl;
+        ThemeOption newTheme = g_isDarkMode ? ThemeOption::Light : ThemeOption::Dark;
+        setCurrentTheme(newTheme);
+        setBackgroundTheme(g_isDarkMode);
     }
 
     if (key == GLFW_KEY_I && action == GLFW_PRESS) // New: Open file dialog to import model
@@ -447,7 +474,7 @@ void Viewer::onKey(int key, int action)
         {
             std::string filePath(lTheOpenFileName);
             loadModel(filePath); // Load the selected model
-            std::cout << "I key pressed. Loaded model: " << filePath << std::endl;
+            // std::cout << "I key pressed. Loaded model: " << filePath << std::endl;
         }
         else
         {
@@ -458,7 +485,7 @@ void Viewer::onKey(int key, int action)
     if (key == GLFW_KEY_D && action == GLFW_PRESS)
     {
         m_showDebugWindow = !m_showDebugWindow;
-        std::cout << "D key pressed. Debug Window Visible: " << (m_showDebugWindow ? "true" : "false") << std::endl;
+        // std::cout << "D key pressed. Debug Window Visible: " << (m_showDebugWindow ? "true" : "false") << std::endl;
     }
 }
 

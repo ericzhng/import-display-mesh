@@ -3,6 +3,7 @@
 #include <iostream>
 #include <filesystem>
 #include <stdexcept>
+#include "Style.h"
 
 // ImGui
 #include "imgui.h"
@@ -52,6 +53,10 @@ int main(int argc, char *argv[])
         // std::cout << "Entering main loop..." << std::endl;
         while (!window.shouldClose())
         {
+            if (updateThemeIfChanged())
+            {
+                viewer.setBackgroundTheme(g_isDarkMode);
+            }
             window.pollEvents();
 
             // Start the Dear ImGui frame
