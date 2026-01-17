@@ -7,6 +7,8 @@
 #include <iostream>
 #include <tinyfiledialogs.h>
 
+const float CAMERA_ANIMATION_DURATION = 0.5f; // Duration for camera animations
+
 // Anonymous namespace for helper functions local to this translation unit
 namespace
 {
@@ -39,7 +41,8 @@ Viewer::Viewer(int width, int height)
       m_currentModelPosition(0.0f, 0.0f, 0.0f),
       m_isDarkTheme(false), // Initialize m_isDarkTheme
       m_customAspectRatio(static_cast<float>(width) / height),
-      m_lastAlignedAxis(Axis::NONE) // Initialize new member m_lastAlignedAxis
+      m_lastAlignedAxis(Axis::NONE), // Initialize new member m_lastAlignedAxis
+      m_cameraAnimator(std::make_unique<CameraAnimator>()) // NEW: Initialize CameraAnimator
 {
     background = std::make_unique<Background>();
     uiRenderer = std::make_unique<UiRenderer>();                                      // Initialize UiRenderer
@@ -58,14 +61,20 @@ void Viewer::init()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_FRAMEBUFFER_SRGB); // Enable automatic sRGB color space conversion
 
-    // Assume shaders are relative to CWD
-    mainShader = std::make_unique<Shader>("shaders/shader.vs", "shaders/shader.fs");
+    // Use absolute paths for shaders to ensure correct loading
+    mainShader = std::make_unique<Shader>(
+        "E:/2026-01/OpenGL/import-display-mesh/build/Debug/shaders/shader.vs",
+        "E:/2026-01/OpenGL/import-display-mesh/build/Debug/shaders/shader.fs"
+    );
 
     // Set initial background theme
     setBackgroundTheme(m_isDarkTheme);
 
     // Initialize grid shader
-    m_gridShader = std::make_unique<Shader>("shaders/grid.vs", "shaders/grid.fs");
+    m_gridShader = std::make_unique<Shader>(
+        "E:/2026-01/OpenGL/import-display-mesh/build/Debug/shaders/grid.vs",
+        "E:/2026-01/OpenGL/import-display-mesh/build/Debug/shaders/grid.fs"
+    );
     setupGrid(); // Initial setup of the grid
 }
 
@@ -115,11 +124,6 @@ void Viewer::autoCenterAndOrientModel()
         return; // No model loaded, nothing to do
     }
 
-    // Store current camera state as animation start
-    m_cameraAnimStartPosition = camera.GetPosition();
-    m_cameraAnimStartTarget = camera.GetTarget();
-    m_cameraAnimStartWorldUp = camera.GetUp();
-
     glm::vec3 modelCenter = model->GetCenter();
     glm::vec3 modelSize = model->GetSize();
 
@@ -131,19 +135,12 @@ void Viewer::autoCenterAndOrientModel()
     // Add a buffer distance to ensure the model is fully visible
     distance *= 1.5f; // 50% buffer
 
-    // Position the camera to look at the model's center from an isometric view (e.g., along (1,1,1) vector)
+    // Position the camera to look at the model's center from an isometric view (e.g., along (1.0, 1.0, 1.0) vector)
     glm::vec3 isometricDirection = glm::normalize(glm::vec3(1.0f, 1.0f, 1.0f));
     glm::vec3 targetCameraPosition = modelCenter + isometricDirection * distance;
     glm::vec3 targetWorldUp = glm::vec3(0.0f, 1.0f, 0.0f); // Assuming Y is up for the scene
 
-    // Store target camera state as animation end
-    m_cameraAnimEndPosition = targetCameraPosition;
-    m_cameraAnimEndTarget = modelCenter;
-    m_cameraAnimEndWorldUp = targetWorldUp;
-
-    // Start animation
-    m_isAnimatingCamera = true;
-    m_animationTime = 0.0f;
+    m_cameraAnimator->startAnimation(camera, targetCameraPosition, modelCenter, targetWorldUp, camera.GetZoom(), CAMERA_ANIMATION_DURATION);
 }
 
 void Viewer::render()
@@ -154,28 +151,9 @@ void Viewer::render()
     m_lastFrameTime = currentFrameTime;
 
     // Handle camera animation
-    if (m_isAnimatingCamera)
+    if (m_cameraAnimator->isAnimating())
     {
-        m_animationTime += m_deltaTime;
-        float t = glm::clamp(m_animationTime / m_animationDuration, 0.0f, 1.0f); // Animation progress [0, 1]
-
-        // Use smoothstep for smoother animation (optional, linear is fine too)
-        t = t * t * (3.0f - 2.0f * t);
-
-        glm::vec3 currentPosition = glm::mix(m_cameraAnimStartPosition, m_cameraAnimEndPosition, t);
-        glm::vec3 currentTarget = glm::mix(m_cameraAnimStartTarget, m_cameraAnimEndTarget, t);
-        // For 'Up' vector, usually Slerp for quaternions or mix for vectors if they are already normalized
-        glm::vec3 currentWorldUp = glm::mix(m_cameraAnimStartWorldUp, m_cameraAnimEndWorldUp, t);
-        currentWorldUp = glm::normalize(currentWorldUp); // Ensure it stays normalized
-
-        camera.SetPositionAndTarget(currentPosition, currentTarget, currentWorldUp);
-
-        if (m_animationTime >= m_animationDuration)
-        {
-            m_isAnimatingCamera = false;
-            // Ensure camera is precisely at the end state
-            camera.SetPositionAndTarget(m_cameraAnimEndPosition, m_cameraAnimEndTarget, m_cameraAnimEndWorldUp);
-        }
+        m_cameraAnimator->updateAnimation(m_deltaTime, camera);
     }
 
     // Determine the main rendering area
@@ -689,10 +667,6 @@ void Viewer::OnAxesWidgetClick(Axis clickedAxis)
     }
     m_lastAlignedAxis = targetAxis; // Always update m_lastAlignedAxis after determining targetAxis
 
-    m_cameraAnimStartPosition = camera.GetPosition();
-    m_cameraAnimStartTarget = camera.GetTarget();
-    m_cameraAnimStartWorldUp = camera.GetUp();
-
     glm::vec3 targetCameraPosition;
     glm::vec3 targetWorldUp = glm::vec3(0.0f, 1.0f, 0.0f); // Default targetWorldUp for most views is World Y-up
 
@@ -726,12 +700,7 @@ void Viewer::OnAxesWidgetClick(Axis clickedAxis)
     std::cout << "OnAxesWidgetClick: Final Target Camera Position: (" << targetCameraPosition.x << ", " << targetCameraPosition.y << ", " << targetCameraPosition.z << ")" << std::endl;
     std::cout << "OnAxesWidgetClick: Final Target World Up: (" << targetWorldUp.x << ", " << targetWorldUp.y << ", " << targetWorldUp.z << ")" << std::endl;
 
-    m_cameraAnimEndPosition = targetCameraPosition;
-    m_cameraAnimEndTarget = modelCenter;
-    m_cameraAnimEndWorldUp = targetWorldUp;
-
-    m_isAnimatingCamera = true;
-    m_animationTime = 0.0f;
+    m_cameraAnimator->startAnimation(camera, targetCameraPosition, modelCenter, targetWorldUp, camera.GetZoom(), CAMERA_ANIMATION_DURATION);
 }
 
 void Viewer::onResize(int w, int h)

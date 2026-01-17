@@ -41,6 +41,7 @@ add_executable(MeshViewer
     ${SOURCES}
     src/UiRenderer.cpp
     src/TextRenderer.cpp # Explicitly add TextRenderer.cpp
+    src/CameraAnimator.cpp # Explicitly add CameraAnimator.cpp
     vendor/glad/src/glad.c
     vendor/tinyfiledialogs/tinyfiledialogs.c
     # ImGui Sources

@@ -14,6 +14,7 @@
 #include "IEventHandler.h"
 #include "UiRenderer.h"   // Include UiRenderer
 #include "TextRenderer.h" // Include TextRenderer
+#include "CameraAnimator.h" // NEW: Include CameraAnimator header
 
 // ImGui
 #include "imgui.h"
@@ -77,19 +78,6 @@ private:
     bool m_cameraControlWindowFirstOpen = true; // New: To track if Camera Control window is opened for the first time
     bool m_cameraDebugWindowFirstOpen = true;   // New: To track if Camera Debug window is opened for the first time
 
-    // Camera Animation State
-    bool m_isAnimatingCamera = false;
-    float m_animationDuration = 0.5f; // Animation duration in seconds
-    float m_animationTime = 0.0f;
-
-    glm::vec3 m_cameraAnimStartPosition;
-    glm::vec3 m_cameraAnimStartTarget;
-    glm::vec3 m_cameraAnimStartWorldUp;
-
-    glm::vec3 m_cameraAnimEndPosition;
-    glm::vec3 m_cameraAnimEndTarget;
-    glm::vec3 m_cameraAnimEndWorldUp;
-
     // Time tracking for animation
     float m_lastFrameTime = 0.0f;
     float m_deltaTime = 0.0f;
@@ -100,7 +88,8 @@ private:
     glm::vec3 m_currentModelPosition; // The model's current animated position
 
     // Grid properties
-    std::unique_ptr<Shader> m_gridShader;
+    std::unique_ptr<Shader> m_gridShader; // Shader for the grid
+    std::unique_ptr<CameraAnimator> m_cameraAnimator; // NEW: Camera Animator
     bool m_showGrid = true;
     float m_gridSpacing = 10.0f;
     int m_gridExtent = 10; // Number of major grid lines from the center (e.g., 10 means from -10 to +10)
