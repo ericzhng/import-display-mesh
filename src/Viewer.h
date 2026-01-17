@@ -70,6 +70,7 @@ private:
     bool m_showDebugWindow = false;                        // New: To toggle debug window visibility
     bool m_showCameraWindow = false;                       // New: To toggle camera window visibility
     bool m_showGridControlWindow = false;
+    bool m_showSummaryWindow = false;                      // New: To toggle summary window visibility
     bool m_cameraControlWindowFirstOpen = true; // New: To track if Camera Control window is opened for the first time
     bool m_cameraDebugWindowFirstOpen = true;   // New: To track if Camera Debug window is opened for the first time
 

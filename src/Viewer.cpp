@@ -289,7 +289,50 @@ void Viewer::render()
         ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
         ImGui::End();
 
-        // 4. ImGui: Context Menu (replaces old custom context menu logic)
+        // 4. ImGui: Summary Information Window
+        if (m_showSummaryWindow)
+        {
+            ImGui::SetNextWindowPos(ImVec2(ImGui::GetWindowViewport()->Pos.x, ImGui::GetWindowViewport()->Pos.y + ImGui::GetWindowViewport()->Size.y), ImGuiCond_Always, ImVec2(0, 1));
+            ImGui::SetNextWindowSize(ImVec2(ImGui::GetWindowViewport()->Size.x, 0), ImGuiCond_Always); // Full width, auto height
+            ImGui::Begin("Summary Information", &m_showSummaryWindow, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+
+            ImGui::Text("View Settings:");
+            ImGui::SameLine();
+            switch (m_modelViewMode)
+            {
+            case ModelViewMode::Shaded:
+                ImGui::Text("Mode: Shaded");
+                break;
+            case ModelViewMode::Wireframe:
+                ImGui::Text("Mode: Wireframe");
+                break;
+            case ModelViewMode::ShadedWithEdges:
+                ImGui::Text("Mode: Shaded With Edges");
+                break;
+            }
+            ImGui::SameLine();
+            ImGui::Text("| Projection: %s", usePerspective ? "Perspective" : "Orthographic");
+
+            if (model)
+            {
+                ImGui::Text("Geometry Info:");
+                ImGui::SameLine();
+                ImGui::Text("Center: (%.2f, %.2f, %.2f)", model->GetCenter().x, model->GetCenter().y, model->GetCenter().z);
+                ImGui::SameLine();
+                ImGui::Text("Size: (%.2f, %.2f, %.2f)", model->GetSize().x, model->GetSize().y, model->GetSize().z);
+                ImGui::SameLine();
+                ImGui::Text("Min Bounds: (%.2f, %.2f, %.2f)", model->GetBoundingBoxMin().x, model->GetBoundingBoxMin().y, model->GetBoundingBoxMin().z);
+                ImGui::SameLine();
+                ImGui::Text("Max Bounds: (%.2f, %.2f, %.2f)", model->GetBoundingBoxMax().x, model->GetBoundingBoxMax().y, model->GetBoundingBoxMax().z);
+            }
+            else
+            {
+                ImGui::Text("No model loaded.");
+            }
+            ImGui::End();
+        }
+
+        // 5. ImGui: Context Menu (replaces old custom context menu logic)
         // Use BeginPopupContextVoid to create a global popup not tied to any specific ImGui window.
         if (ImGui::BeginPopupContextVoid("ModelViewerContextMenu", ImGuiPopupFlags_MouseButtonRight))
         {
@@ -376,6 +419,10 @@ void Viewer::render()
             if (ImGui::MenuItem("Toggle Grid Control Window", nullptr, m_showGridControlWindow))
             {
                 m_showGridControlWindow = !m_showGridControlWindow;
+            }
+            if (ImGui::MenuItem("Toggle Summary Window", nullptr, m_showSummaryWindow))
+            {
+                m_showSummaryWindow = !m_showSummaryWindow;
             }
             ImGui::EndPopup();
         }

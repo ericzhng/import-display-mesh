@@ -19,6 +19,8 @@ public:
     void Draw() const;
     glm::vec3 GetCenter();
     glm::vec3 GetSize();
+    glm::vec3 GetBoundingBoxMin() const { return BoundingBoxMin; }
+    glm::vec3 GetBoundingBoxMax() const { return BoundingBoxMax; }
 
 private:
     std::vector<Mesh> meshes;
