@@ -831,6 +831,10 @@ void Viewer::setupGrid()
         majorGridVertices.push_back(glm::vec3(x, maxCoord, 0.0f));
     }
 
+    glGenVertexArrays(1, &m_majorGridVAO);
+    glGenBuffers(1, &m_majorGridVBO);
+    glBindVertexArray(m_majorGridVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_majorGridVBO);
     glBufferData(GL_ARRAY_BUFFER, majorGridVertices.size() * sizeof(glm::vec3), majorGridVertices.data(), GL_STATIC_DRAW);
 
     // Position attribute
