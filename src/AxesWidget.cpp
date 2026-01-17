@@ -49,23 +49,24 @@ void AxesWidget::init()
     glBindVertexArray(0);
 }
 
-void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, Shader &shader, int screenWidth, int screenHeight)
+void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, Shader &shader, int viewportX, int viewportY, int viewportWidth, int viewportHeight)
 {
     // Save current viewport
     GLint originalViewport[4];
     glGetIntegerv(GL_VIEWPORT, originalViewport);
 
-    // 1. Setup Viewport for the corner widget (Bottom-Left)
-    int widgetSize = 120; // Size in pixels (increased to prevent clipping)
+    // 1. Setup Viewport for the corner widget (Bottom-Left of the *passed viewport*)
+    int widgetSize = 120; // Size in pixels
     int margin = 5;       // Distance from edge
 
-    // Calculate bottom-left position
-    int viewportX = margin;
-    int viewportY = margin; // OpenGL's (0,0) is bottom-left
+    // Calculate bottom-left position within the passed viewport
+    // The AxesWidget will draw at (viewportX + margin, viewportY + margin)
+    int widgetViewportX = viewportX + margin;
+    int widgetViewportY = viewportY + margin; // OpenGL's (0,0) is bottom-left
 
     glEnable(GL_SCISSOR_TEST);
-    glScissor(viewportX, viewportY, widgetSize, widgetSize);
-    glViewport(viewportX, viewportY, widgetSize, widgetSize);
+    glScissor(widgetViewportX, widgetViewportY, widgetSize, widgetSize);
+    glViewport(widgetViewportX, widgetViewportY, widgetSize, widgetSize);
     glClear(GL_DEPTH_BUFFER_BIT); // Clear depth buffer for the widget viewport
     glDisable(GL_SCISSOR_TEST);
 

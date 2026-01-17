@@ -113,9 +113,10 @@ private:
     float m_customAspectRatio = 16.0f / 9.0f;
     bool m_useCustomAspectRatio = false;          // Re-added: Flag to use custom aspect ratio
     float m_lastWindowAspectRatio = 16.0f / 9.0f; // New: Stores the last calculated window aspect ratio
+    float m_summaryWindowHeight = 50.0f;          // New: Height reserved for the summary window
 
     void autoCenterAndOrientModel();
-    void drawGrid();
+    void drawGrid(int viewportWidth, int viewportHeight);
     void setupGrid();
     // ... existing members ...
     float getUiScale() const;

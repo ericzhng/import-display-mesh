@@ -13,7 +13,7 @@ public:
     AxesWidget(int screenWidth, int screenHeight, UiRenderer* uiRenderer);
     ~AxesWidget();
 
-    void Draw(const glm::mat4 &view, const glm::mat4 &projection, Shader &shader, int screenWidth, int screenHeight);
+    void Draw(const glm::mat4 &view, const glm::mat4 &projection, Shader &shader, int viewportX, int viewportY, int viewportWidth, int viewportHeight);
 
 private:
     unsigned int axesVAO, axesVBO;

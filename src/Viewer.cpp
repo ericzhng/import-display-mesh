@@ -154,9 +154,20 @@ void Viewer::render()
         }
     }
 
+    // Determine the main rendering area
+    int mainRenderWidth = width;
+    int mainRenderHeight = height;
+    int mainRenderX = 0;
+    int mainRenderY = 0;
+
+    if (m_showSummaryWindow)
+    {
+        mainRenderHeight -= static_cast<int>(m_summaryWindowHeight);
+        mainRenderY = static_cast<int>(m_summaryWindowHeight); // The main view starts above the summary window
+    }
+
     // Reset Viewport for main scene
-    glViewport(0, 0, width, height);
-    // glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // Removed as background is drawn by Background class
+    glViewport(mainRenderX, mainRenderY, mainRenderWidth, mainRenderHeight);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Determine the aspect ratio to use
@@ -167,7 +178,7 @@ void Viewer::render()
     }
     else
     {
-        currentAspectRatio = static_cast<float>(width) / height;
+        currentAspectRatio = static_cast<float>(mainRenderWidth) / mainRenderHeight;
     }
 
     // 1. Draw Background
@@ -177,7 +188,7 @@ void Viewer::render()
     }
 
     // 2. Draw Grid
-    drawGrid();
+    drawGrid(mainRenderWidth, mainRenderHeight);
 
     // 2. Draw Model
     if (model && mainShader)
@@ -270,7 +281,7 @@ void Viewer::render()
         // 3. Draw Axes Widget
         if (axesWidget && m_showAxesWidget)
         {
-            axesWidget->Draw(view, projection, *mainShader, width, height); // Pass screen width and height
+            axesWidget->Draw(view, projection, *mainShader, mainRenderX, mainRenderY, mainRenderWidth, mainRenderHeight); // Pass screen width and height
         }
 
         // Setup Dockspace
@@ -292,8 +303,8 @@ void Viewer::render()
         // 4. ImGui: Summary Information Window
         if (m_showSummaryWindow)
         {
-            ImGui::SetNextWindowPos(ImVec2(ImGui::GetWindowViewport()->Pos.x, ImGui::GetWindowViewport()->Pos.y + ImGui::GetWindowViewport()->Size.y), ImGuiCond_Always, ImVec2(0, 1));
-            ImGui::SetNextWindowSize(ImVec2(ImGui::GetWindowViewport()->Size.x, 0), ImGuiCond_Always); // Full width, auto height
+            ImGui::SetNextWindowPos(ImVec2(ImGui::GetWindowViewport()->Pos.x, ImGui::GetWindowViewport()->Pos.y + ImGui::GetWindowViewport()->Size.y - m_summaryWindowHeight), ImGuiCond_Always);
+            ImGui::SetNextWindowSize(ImVec2(ImGui::GetWindowViewport()->Size.x, m_summaryWindowHeight), ImGuiCond_Always);
             ImGui::Begin("Summary Information", &m_showSummaryWindow, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 
             ImGui::Text("View Settings:");
@@ -750,7 +761,7 @@ void Viewer::onMouseButton(int button, int action, double xpos, double ypos)
     // Original mouse button handling for camera.
 }
 
-void Viewer::drawGrid()
+void Viewer::drawGrid(int viewportWidth, int viewportHeight)
 {
     if (!m_gridShader || !m_showGrid)
     {
@@ -771,7 +782,7 @@ void Viewer::drawGrid()
     }
     else
     {
-        currentAspectRatio = static_cast<float>(width) / height;
+        currentAspectRatio = static_cast<float>(viewportWidth) / viewportHeight;
     }
 
     if (usePerspective)
