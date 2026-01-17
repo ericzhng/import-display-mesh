@@ -4,7 +4,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp> // For glm::value_ptr
 
-AxesWidget::AxesWidget(int screenWidth, int screenHeight, UiRenderer *uiRenderer, IAxesWidgetListener* listener)
+AxesWidget::AxesWidget(int screenWidth, int screenHeight, UiRenderer *uiRenderer, IAxesWidgetListener *listener)
     : axesVAO(0), axesVBO(0), uiRenderer(uiRenderer), m_listener(listener)
 {
     textRenderer = std::make_unique<TextRenderer>(screenWidth, screenHeight);
@@ -138,7 +138,7 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
         float baseLabelY_widgetSpace = (tipScreenNDC.y * 0.5f + 0.5f) * widgetSize;
 
         // Add a small fixed pixel offset outwards from the projected tip.
-        float pixelOffset = 4.0f; // Fixed pixel amount for offset (reduced)
+        float pixelOffset = 1.0f; // Fixed pixel amount for offset (reduced)
         float labelX = baseLabelX_widgetSpace + dir2D.x * pixelOffset;
         float labelY = baseLabelY_widgetSpace + dir2D.y * pixelOffset;
 
@@ -152,9 +152,8 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
         // Draw background circle (always, but with potentially transparent color)
         if (uiRenderer)
         {
-            glm::vec4 circleColor = (axisEnum == Axis::X_NEG || axisEnum == Axis::Y_NEG || axisEnum == Axis::Z_NEG) ?
-                                    glm::vec4(axisColor.r, axisColor.g, axisColor.b, 0.0f) : // Transparent for negative axes
-                                    glm::vec4(axisColor.r, axisColor.g, axisColor.b, 1.0f); // Opaque for positive axes
+            glm::vec4 circleColor = (axisEnum == Axis::X_NEG || axisEnum == Axis::Y_NEG || axisEnum == Axis::Z_NEG) ? glm::vec4(axisColor.r, axisColor.g, axisColor.b, 0.0f) : // Transparent for negative axes
+                                        glm::vec4(axisColor.r, axisColor.g, axisColor.b, 1.0f);                                                                                // Opaque for positive axes
             uiRenderer->drawCircle(labelX, labelY, labelCircleRadius, circleColor, orthoProjection);
         }
 
@@ -179,12 +178,17 @@ void AxesWidget::Draw(const glm::mat4 &view, const glm::mat4 & /*projection*/, S
         }
     };
 
-    drawAxisLabel(glm::vec3(1.0f, 0.0f, 0.0f), "X", glm::vec4(1.0f, 0.2f, 0.32f, 1.0f), Axis::X_POS);    // Red-ish
-    drawAxisLabel(glm::vec3(-1.0f, 0.0f, 0.0f), "", glm::vec4(1.0f, 0.2f, 0.32f, 1.0f), Axis::X_NEG); // Transparent Red-ish
-    drawAxisLabel(glm::vec3(0.0f, 1.0f, 0.0f), "Y", glm::vec4(0.54f, 0.86f, 0.0f, 1.0f), Axis::Y_POS);  // Green-ish
-    drawAxisLabel(glm::vec3(0.0f, -1.0f, 0.0f), "", glm::vec4(0.54f, 0.86f, 0.0f, 1.0f), Axis::Y_NEG); // Transparent Green-ish
-    drawAxisLabel(glm::vec3(0.0f, 0.0f, 1.0f), "Z", glm::vec4(0.15f, 0.56f, 1.0f, 1.0f), Axis::Z_POS);  // Blue-ish
-    drawAxisLabel(glm::vec3(0.0f, 0.0f, -1.0f), "", glm::vec4(0.15f, 0.56f, 1.0f, 1.0f), Axis::Z_NEG); // Transparent Blue-ish
+        drawAxisLabel(glm::vec3(0.7f, 0.0f, 0.0f), "X", glm::vec4(1.0f, 0.2f, 0.32f, 1.0f), Axis::X_POS);    // Red-ish
+
+        drawAxisLabel(glm::vec3(-0.7f, 0.0f, 0.0f), "", glm::vec4(1.0f, 0.2f, 0.32f, 1.0f), Axis::X_NEG); // Transparent Red-ish
+
+        drawAxisLabel(glm::vec3(0.0f, 0.7f, 0.0f), "Y", glm::vec4(0.54f, 0.86f, 0.0f, 1.0f), Axis::Y_POS);  // Green-ish
+
+        drawAxisLabel(glm::vec3(0.0f, -0.7f, 0.0f), "", glm::vec4(0.54f, 0.86f, 0.0f, 1.0f), Axis::Y_NEG); // Transparent Green-ish
+
+        drawAxisLabel(glm::vec3(0.0f, 0.0f, 0.7f), "Z", glm::vec4(0.15f, 0.56f, 1.0f, 1.0f), Axis::Z_POS);  // Blue-ish
+
+        drawAxisLabel(glm::vec3(0.0f, 0.0f, -0.7f), "", glm::vec4(0.15f, 0.56f, 1.0f, 1.0f), Axis::Z_NEG); // Transparent Blue-ish
 
     // Restore state
     glEnable(GL_DEPTH_TEST);
@@ -216,7 +220,7 @@ bool AxesWidget::OnMouseButton(double xpos, double ypos, int button, int action)
 
             glm::vec2 mouseNormalized = glm::vec2(normalizedX, normalizedY);
 
-            for (const auto& hitbox : m_labelHitboxes)
+            for (const auto &hitbox : m_labelHitboxes)
             {
                 float dist = glm::distance(mouseNormalized, hitbox.center);
                 if (dist < hitbox.radius)
