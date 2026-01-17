@@ -486,8 +486,8 @@ void Viewer::render()
             ImGui::SetNextWindowSize(ImVec2(350, 0), ImGuiCond_FirstUseEver); // Still allow size to be remembered
             ImGui::Begin("Camera Control", &m_showCameraWindow);
 
-            float currentFov = camera.GetZoom();
-            bool valueEdited = false; // Flag to track if any value was edited
+            float currentFov = camera.GetZoom(); // Initialize with current camera FOV
+            bool valueEdited = false;            // Flag to track if any value was edited
 
             // Sensor Height (mm)
             ImGui::AlignTextToFramePadding(); // Align text vertically with the following widget
@@ -498,12 +498,12 @@ void Viewer::render()
             if (ImGui::InputFloat("##SensorHeight", &m_sensorHeight, 1.0f, 10.0f, "%.1f"))
             {
                 valueEdited = true;
-                // If Sensor Height is changed, recalculate Focal Length
+                m_sensorHeight = glm::max(0.1f, m_sensorHeight); // Ensure sensor height is not too small
+                // Recalculate focal length based on current FOV and new sensor height
                 float fovy_radians = glm::radians(currentFov);
                 m_focalLength = (m_sensorHeight / 2.0f) / glm::tan(fovy_radians / 2.0f);
             }
             ImGui::PopItemWidth();
-            m_sensorHeight = glm::max(0.1f, m_sensorHeight); // Ensure sensor height is not too small
 
             // FOV (degrees)
             ImGui::AlignTextToFramePadding();
@@ -514,12 +514,13 @@ void Viewer::render()
             if (ImGui::SliderFloat("##FOV", &currentFov, 1.0f, 120.0f))
             {
                 valueEdited = true;
-                // If FOV is changed, recalculate Focal Length
-                float fovy_radians = 2.0f * glm::atan((m_sensorHeight / 2.0f) / m_focalLength);
-                camera.SetZoom(glm::degrees(fovy_radians));
+                currentFov = glm::clamp(currentFov, 0.1f, 179.9f); // Clamp FOV for glm::perspective stability
+                camera.SetZoom(currentFov);                        // Update camera's FOV
+                // Recalculate Focal Length based on new FOV and current sensor height
+                float fovy_radians = glm::radians(currentFov);
+                m_focalLength = (m_sensorHeight / 2.0f) / glm::tan(fovy_radians / 2.0f);
             }
             ImGui::PopItemWidth();
-            currentFov = glm::clamp(currentFov, 0.1f, 179.9f); // Clamp FOV for glm::perspective stability
 
             // Focal Length (mm)
             ImGui::AlignTextToFramePadding();
@@ -530,12 +531,12 @@ void Viewer::render()
             if (ImGui::SliderFloat("##FocalLength", &m_focalLength, 1.0f, 200.0f, "%.1f")) // Lower min focal length
             {
                 valueEdited = true;
-                // If Focal Length is changed, recalculate FOV
+                m_focalLength = glm::max(0.1f, m_focalLength); // Ensure focal length is not too small
+                // Recalculate FOV based on new Focal Length and current sensor height
                 float fovy_radians = 2.0f * glm::atan((m_sensorHeight / 2.0f) / m_focalLength);
-                camera.SetZoom(glm::degrees(fovy_radians));
+                camera.SetZoom(glm::degrees(fovy_radians)); // Update camera's FOV
             }
             ImGui::PopItemWidth();
-            m_focalLength = glm::max(0.1f, m_focalLength); // Ensure focal length is not too small
 
             ImGui::Separator();
 
