@@ -47,6 +47,7 @@ The goal of this project is to develop a lightweight, high-performance C++ 3D Mo
     ```bash
     cmake --build .
     ```
+Do not run cmake or tests to verify the build. I will run it manually for you.
 
 ### Running the Application
 The executable `MeshViewer` will be located in the `build` directory (or `build/Debug` on Windows).
