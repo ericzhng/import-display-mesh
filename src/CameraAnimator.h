@@ -1,7 +1,8 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include "Camera.h" // Assuming Camera.h defines the Camera class
+#include <glm/gtc/quaternion.hpp>
+#include "Camera.h"
 
 class CameraAnimator
 {
@@ -10,13 +11,12 @@ public:
 
     void startAnimation(
         const Camera &currentCamera,
-        const glm::vec3 &targetPosition,
-        const glm::vec3 &targetTarget,
+        const glm::vec3 &targetPosition, // This acts as the new "Eye" position
+        const glm::vec3 &targetTarget,   // The point the camera looks at
         const glm::vec3 &targetWorldUp,
         float targetZoom,
         float duration);
 
-    // Updates the camera state based on delta time and returns true if animation is still in progress
     bool updateAnimation(float deltaTime, Camera &camera);
     bool isAnimating() const { return m_isAnimating; }
 
@@ -25,18 +25,20 @@ private:
     float m_animationTime;
     float m_animationDuration;
 
+    // We separate the camera state into:
+    // 1. The Pivot Point (Target)
+    // 2. The Orientation (Quaternion)
+    // 3. The Distance from Pivot (Radius)
+
     // Start state
-    glm::vec3 m_startPosition;
     glm::vec3 m_startTarget;
-    glm::vec3 m_startWorldUp;
-    float m_startZoom;
+    glm::quat m_startOrientation;
+    float m_startDistance; // Distance between Pos and Target
+    float m_startZoom;     // FOV or Ortho scale
 
     // End state
-    glm::vec3 m_endPosition;
     glm::vec3 m_endTarget;
-    glm::vec3 m_endWorldUp;
+    glm::quat m_endOrientation;
+    float m_endDistance;
     float m_endZoom;
-
-    // Helper for smoothstep interpolation
-    float smoothstep(float edge0, float edge1, float x);
 };
