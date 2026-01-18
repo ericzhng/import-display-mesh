@@ -305,9 +305,11 @@ void Viewer::render()
         // 4. ImGui: Summary Information Window
         if (m_showSummaryWindow)
         {
-            ImGui::SetNextWindowPos(ImVec2(ImGui::GetWindowViewport()->Pos.x, ImGui::GetWindowViewport()->Pos.y + ImGui::GetWindowViewport()->Size.y - m_summaryWindowHeight), ImGuiCond_Always);
-            ImGui::SetNextWindowSize(ImVec2(ImGui::GetWindowViewport()->Size.x, m_summaryWindowHeight), ImGuiCond_Always);
-            ImGui::Begin("Summary Information", &m_showSummaryWindow, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
+            // Set initial position and size, but allow user to move/resize/dock later
+            ImGui::SetNextWindowPos(ImVec2(ImGui::GetWindowViewport()->Pos.x, ImGui::GetWindowViewport()->Pos.y + ImGui::GetWindowViewport()->Size.y - m_summaryWindowHeight), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(ImGui::GetWindowViewport()->Size.x, m_summaryWindowHeight), ImGuiCond_FirstUseEver);
+            // Removed ImGuiWindowFlags_NoTitleBar, ImGuiWindowFlags_NoResize, ImGuiWindowFlags_NoMove to allow docking
+            ImGui::Begin("Summary Information", &m_showSummaryWindow); 
 
             ImGui::Text("View Settings:");
             ImGui::SameLine();
@@ -443,7 +445,8 @@ void Viewer::render()
         // 5. ImGui: Debug Window
         if (m_showDebugWindow)
         {
-            ImGui::SetNextWindowPos(ImGui::GetWindowViewport()->Pos, ImGuiCond_Always); // Top-left of the application window
+            // Set initial position, but allow user to move/resize/dock later
+            ImGui::SetNextWindowPos(ImGui::GetWindowViewport()->Pos, ImGuiCond_FirstUseEver); // Top-left of the application window, first use only
             ImGui::Begin("Camera Debug Info", &m_showDebugWindow);
             ImGui::Text("Position: (%.2f, %.2f, %.2f)", camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
             ImGui::Text("Target:   (%.2f, %.2f, %.2f)", camera.GetTarget().x, camera.GetTarget().y, camera.GetTarget().z);
@@ -458,9 +461,9 @@ void Viewer::render()
         // 6. ImGui: Camera Control Window
         if (m_showCameraWindow)
         {
-            // Position top-right of the application window's viewport
+            // Position top-right of the application window's viewport initially, but allow user to move/resize/dock later
             float posX = ImGui::GetWindowViewport()->Pos.x + ImGui::GetWindowViewport()->Size.x;
-            ImGui::SetNextWindowPos(ImVec2(posX, ImGui::GetWindowViewport()->Pos.y), ImGuiCond_Always, ImVec2(1, 0));
+            ImGui::SetNextWindowPos(ImVec2(posX, ImGui::GetWindowViewport()->Pos.y), ImGuiCond_FirstUseEver, ImVec2(1, 0));
             ImGui::SetNextWindowSize(ImVec2(350, 0), ImGuiCond_FirstUseEver); // Still allow size to be remembered
             ImGui::Begin("Camera Control", &m_showCameraWindow);
 
@@ -575,8 +578,9 @@ void Viewer::render()
         // 7. ImGui: Grid Control Window
         if (m_showGridControlWindow)
         {
+            // Position relative to the application window's viewport initially, but allow user to move/resize/dock later
             float posX = ImGui::GetWindowViewport()->Pos.x + ImGui::GetWindowViewport()->Size.x;
-            ImGui::SetNextWindowPos(ImVec2(posX, ImGui::GetWindowViewport()->Pos.y + ImGui::GetWindowViewport()->Size.y / 2.0f), ImGuiCond_Always, ImVec2(1, 0.5));
+            ImGui::SetNextWindowPos(ImVec2(posX, ImGui::GetWindowViewport()->Pos.y + ImGui::GetWindowViewport()->Size.y / 2.0f), ImGuiCond_FirstUseEver, ImVec2(1, 0.5));
             ImGui::SetNextWindowSize(ImVec2(350, 0), ImGuiCond_FirstUseEver);
             ImGui::Begin("Grid Control", &m_showGridControlWindow);
 
